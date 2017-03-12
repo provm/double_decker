@@ -1,0 +1,150 @@
+--- ../tmem_module/utmem.c	2016-11-07 19:05:43.258102344 +0530
++++ ../stable_code/tmem_module/utmem.c	2016-11-24 19:19:05.069661170 +0530
+@@ -469,11 +469,26 @@
+ }
+ static struct kobj_attribute pool_ssd_used_attribute = __ATTR(ssd_used,0444,pool_ssd_used_show,NULL);
+ 
++
++static ssize_t pool_stats_show(struct kobject *kobj, struct kobj_attribute *attr,
++                        char *buf)
++{
++        struct tmem_pool *pool = NULL;
++         
++        pool = get_pool_from_kobj(kobj);
++        if(!pool)
++               return -EINVAL;
++
++        return sprintf(buf, "gets:%u sgets:%u puts:%u flushes:%u evicts:%u\n", pool->total_gets, pool->succ_gets, pool->succ_puts, pool->succ_flushes,pool->evicts);
++}
++static struct kobj_attribute pool_stats_attribute = __ATTR(stats,0444,pool_stats_show,NULL);
++
+ static struct attribute *pool_attrs[] = {
+         &pool_weight_attribute.attr,
+         &pool_entitlement_attribute.attr,
+         &pool_ssd_entitlement_attribute.attr,
+         &pool_used_attribute.attr,
++        &pool_stats_attribute.attr,
+         &pool_ssd_used_attribute.attr,
+         NULL,
+ };
+@@ -489,7 +504,7 @@
+    struct eviction_info *ev = pool->eviction_info;
+ 
+    utmemassert(ev);
+-   utmemassert(num <= atomic_read(&pool->used));
++   //utmemassert(num <= atomic_read(&pool->used));
+ 
+    while(flushed < num && atomic_read(&pool->used)){
+         utmem_pampd *entry;
+@@ -501,6 +516,7 @@
+                         spin_unlock(&ev->ev_lock);
+ 
+                         BUG_ON(!entry); 
++                        pool->evicts++;
+                         ret = tmem_flush_page(pool, &entry->tmem_obj->oid, entry->index);
+                         if(!ret)
+                             ++flushed; 
+@@ -705,14 +721,14 @@
+      if (pool == NULL)
+              goto out;
+      pool->weight = new_weight;
++     pool->ssd = pool_type ? true : false;
+ 
++#ifndef GLOBAL_EVICT
+      if(pool_type && !pool->ssd && atomic_read(&pool->used) > 0)
+            evict_from_pool(pool, atomic_read(&pool->used));  
+      else if(!pool_type && pool->ssd && atomic_read(&pool->ssd_used) > 0)
+            evict_from_pool(pool, atomic_read(&pool->ssd_used));  
+      
+-     pool->ssd = pool_type ? true : false;
+-#ifndef GLOBAL_EVICT
+      ret = check_and_readjust_allocations(client);
+ #endif
+      out:
+@@ -728,7 +744,7 @@
+    
+ 
+    utmemassert(ev);
+-   utmemassert(num <= atomic_read(&client->mem_used));
++//   utmemassert(num <= atomic_read(&client->mem_used));
+ 
+    while(flushed < num && atomic_read(&client->mem_used)){
+           utmem_pampd *entry;
+@@ -739,6 +755,7 @@
+           spin_unlock(&ev->ev_lock);
+ 
+           BUG_ON(!entry); 
++          entry->tmem_obj->pool->evicts++;
+           ret = tmem_flush_page(entry->tmem_obj->pool, &entry->tmem_obj->oid, entry->index);
+           if(!ret)
+                   ++flushed; 
+@@ -772,6 +789,17 @@
+ }
+         
+ #endif
++/*
++static inline bool under_global_limit(struct tmem_client *client, bool ssd)
++{
++   if( (!ssd && (atomic_read(&client->g->mem_used) < client->g->mem_limit)) ||
++        (ssd && (atomic_read(&client->g->ssd_used) < client->g->ssd_limit)))
++            return true;
++
++   return false;
++}
++*/
++
+ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_oid *oidp, uint32_t index, struct page *page)
+ {
+         struct tmem_pool *pool;
+@@ -784,6 +812,10 @@
+         if (unlikely(pool == NULL))
+                 goto out;
+         WARN_ON(client != pool->client);
++
++/*        if(under_global_limit(client, pool->ssd))
++             goto do_put; */
++
+ #ifdef GLOBAL_EVICT
+         if(client_overflow(client) == 0)
+              goto out;
+@@ -792,11 +824,14 @@
+             goto out;  
+ #endif
+ 
++//do_put:
+ //        local_irq_save(flags);
+         ret = tmem_put(pool, oidp, index, (char *)(page),
+                                 PAGE_SIZE, 0, is_ephemeral(pool));
+ //        local_irq_restore(flags);
+ out:
++        if(!ret)
++                pool->succ_puts++;
+         return ret;
+ 
+ }
+@@ -813,13 +848,15 @@
+         if (unlikely(pool == NULL))
+                 goto out;
+         WARN_ON(client != pool->client);
+-
++        pool->total_gets++;
+ //        local_irq_save(flags);
+         if (atomic_read(&pool->obj_count) > 0)
+                ret = tmem_get(pool, oidp, index, (char *)(page),
+                                         &size, 0, is_ephemeral(pool));
+ //        local_irq_restore(flags);
+ out:
++        if(!ret)
++             pool->succ_gets++;
+         return ret;
+ 
+ }
+@@ -843,6 +880,8 @@
+         }
+ //        local_irq_restore(flags);
+ out:
++        if(!ret)
++               pool->succ_flushes++;
+         return ret;
+ }
+ 
