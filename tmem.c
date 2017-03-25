@@ -582,9 +582,7 @@ int tmem_put(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index, char
 	}
 	BUG_ON(obj == NULL);
 	BUG_ON(((objnew != obj) && (objfound != obj)) || (objnew == objfound));
-	/*
-		TODO: Where to put the page ? memory or ssd ?
-	*/
+	
 	pampd = (*tmem_pamops.create)(data, size, raw, ephemeral,
 					obj->pool, &obj->oid, index,obj);
 	if (unlikely(pampd == NULL)){

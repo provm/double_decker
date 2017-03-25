@@ -207,6 +207,7 @@ static void free_ssd_block(struct global_info *g, utmem_pampd *n)
     utmemassert(n->page <= g->ssd_limit);
     mark_free(g, n->page);
 }
+
 static int ssd_alloc_and_write(struct global_info *g, utmem_pampd *n)
 {
    
@@ -248,9 +249,11 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
                      "pause"
          );
        }
+
        lock_page(page);
        bio = get_ssd_bio(GFP_KERNEL, page, end_ssd_bio_read, n);  
        BUG_ON(!bio);
+       
        bio->bi_iter.bi_sector = (n->page) << (PAGE_SHIFT - 9);
        bio->bi_bdev = g->bdev;
        submit_bio(READ_SYNC, bio);
@@ -320,6 +323,7 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
 	Might have to change for eviction logic 
    */
    if(atomic_read(&pool->mem_used)>=pool->mem_entitlement){
+	
 	ssd_alloc_and_write(client->g, n);
 	n->type = SSD;
 
@@ -334,7 +338,8 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
        
    }
    else{
-        n->type = MEMORY;
+        
+	n->type = MEMORY;
         atomic_inc(&client->mem_used); 
         atomic_inc(&client->g->mem_used);
         atomic_inc(&pool->mem_used);
