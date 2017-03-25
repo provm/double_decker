@@ -339,7 +339,7 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
         atomic_inc(&client->g->mem_used);
         atomic_inc(&pool->mem_used);
 
-	ev = pool->memory_eviction_info;
+	ev = pool->mem_eviction_info;
 	spin_lock(&ev->ev_lock); 
 	list_add_tail(&n->entry_list, &ev->head); 
 	spin_unlock(&ev->ev_lock); 
@@ -442,7 +442,7 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
    BUG_ON(!n);
    
    if(n->type == SSD){		
-	ret = read_and_free_from_ssd(client->g, page, n);
+	free_ssd_block(client->g, n);
 	atomic_dec(&client->ssd_used);
 	atomic_dec(&client->g->ssd_used);
 	atomic_dec(&pool->ssd_used);
@@ -456,9 +456,6 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
  
    }
    else{
-	dst = kmap_atomic(page);
-	memcpy(dst, (void *)n->page, PAGE_SIZE);
-	kunmap_atomic(dst);    
 	free_page(n->page);
 	atomic_dec(&client->mem_used);
 	atomic_dec(&client->g->mem_used);
@@ -468,9 +465,7 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 	ev = pool->mem_eviction_info;
 	spin_lock(&ev->ev_lock); 
 	list_del(&n->entry_list);
-	spin_unlock(&ev->ev_lock);
-	
-	ret = 0;
+	spin_unlock(&ev->ev_lock);	
    }
 
    kmem_cache_free(utmem_pampd_cache, n);

@@ -877,7 +877,7 @@ static int evict_memory_from_client(struct tmem_client *client)
 
          if(pool->mem_entitlement < used + EVICT_BATCH){  
              pools[count++] = pool;   // Already over the limits
-             cuml_weight += pool->weight;
+             cuml_weight += pool->mem_weight;
           }else if(pool->mem_entitlement - used > 2 * EVICT_BATCH){
              under_utilized_others += pool->mem_entitlement - used;
           }
@@ -891,10 +891,10 @@ static int evict_memory_from_client(struct tmem_client *client)
    pool = pools[0];    
    
    if(count > 1)
-      current_max_overuse = get_overuse(pool->mem_entitlement, pool->weight, atomic_read(&pool->used), under_utilized_others, cuml_weight);
+      current_max_overuse = get_overuse(pool->mem_entitlement, pool->mem_weight, atomic_read(&pool->mem_used), under_utilized_others, cuml_weight);
 
    for(i=1; i < count; ++i){
-         int new_overuse = get_overuse(pools[i]->mem_entitlement, pools[i]->weight,  atomic_read(&pools[i]->used), under_utilized_others, cuml_weight);
+         int new_overuse = get_overuse(pools[i]->mem_entitlement, pools[i]->mem_weight,  atomic_read(&pools[i]->mem_used), under_utilized_others, cuml_weight);
          if( new_overuse > current_max_overuse){
              pool = pools[i];     
          }
@@ -988,7 +988,7 @@ static int evict_ssdmem_from_client(struct tmem_client *client)
 
          if(pool->ssd_entitlement < used + EVICT_BATCH){
              pools[count++] = pool;   // Already over the limits
-             cuml_weight += pool->weight;
+             cuml_weight += pool->ssd_weight;
           }else if(pool->ssd_entitlement - used > 2 * EVICT_BATCH){
              under_utilized_others += pool->ssd_entitlement - used;
           }
@@ -1002,10 +1002,10 @@ static int evict_ssdmem_from_client(struct tmem_client *client)
    pool = pools[0];
 
    if(count > 1)
-      current_max_overuse = get_overuse(pool->ssd_entitlement, pool->weight, atomic_read(&pool->ssd_used), under_utilized_others, cuml_weight);
+      current_max_overuse = get_overuse(pool->ssd_entitlement, pool->ssd_weight, atomic_read(&pool->ssd_used), under_utilized_others, cuml_weight);
 
    for(i=1; i < count; ++i){
-         int new_overuse = get_overuse(pools[i]->ssd_entitlement, pools[i]->weight,  atomic_read(&pools[i]->ssd_used), under_utilized_others, cuml_weight);
+         int new_overuse = get_overuse(pools[i]->ssd_entitlement, pools[i]->ssd_weight,  atomic_read(&pools[i]->ssd_used), under_utilized_others, cuml_weight);
          if( new_overuse > current_max_overuse){
              pool = pools[i];
          }
@@ -1081,7 +1081,7 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
 {
         struct tmem_pool *pool;
         int ret = -1;
-        int entitlement;
+        //int entitlement;
         
         client->g->puts++;
 
