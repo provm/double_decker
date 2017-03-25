@@ -436,7 +436,7 @@ static ssize_t pool_weight_show(struct kobject *kobj, struct kobj_attribute *att
         if(!pool)
                return -EINVAL;
 
-        return sprintf(buf, "%d\n", pool->weight);
+        return sprintf(buf, "MEM:%d SSD:%d\n", pool->mem_weight, pool->ssd_weight);
 }
 
 static struct kobj_attribute pool_weight_attribute = __ATTR(weight,0444,pool_weight_show,NULL);
@@ -478,7 +478,8 @@ static ssize_t pool_used_show(struct kobject *kobj, struct kobj_attribute *attr,
         if(!pool)
                return -EINVAL;
 
-        return sprintf(buf, "%u\n", atomic_read(&pool->used));
+        return sprintf(buf, "MEM-%u SSD-%u\n", 
+		atomic_read(&pool->mem_used), atomic_read(&pool->ssd_used));
 }
 static struct kobj_attribute pool_used_attribute = __ATTR(mem_used,0444,pool_used_show,NULL);
 
@@ -526,11 +527,12 @@ static struct attribute_group pool_attr_group = {
 static int evict_from_pool(struct tmem_pool *pool, int num, bool ssd)
 {
    int flushed = 0, ret;
-   struct eviction_info *ev = pool->eviction_info;
-   atomic_t *used = ssd ? &pool->ssd_used : &pool->used;
+
+   /* TODO: Eviction to be changed */
+   struct eviction_info *ev = pool->ssd_eviction_info;
+   atomic_t *used = ssd ? &pool->ssd_used : &pool->mem_used;
 
    utmemassert(ev);
-//   utmemassert(num <= atomic_read(&pool->used));
 
 	while(flushed < num && atomic_read(used)){
         	utmem_pampd *entry;
@@ -582,7 +584,6 @@ static int evict_from_client(struct tmem_client *client, bool ssd)
 
 /*
 	Main controller function for adjusting client allocations 
-	TODO: Manipulate this for the algo to accomodate memory and SSD weights together
 */
 static int check_and_readjust_allocations(struct tmem_client *client)
 {
@@ -591,30 +592,34 @@ static int check_and_readjust_allocations(struct tmem_client *client)
    bool adjusted = false;
 
    for (poolid = 0; poolid < MAX_POOLS_PER_CLIENT; poolid++){
-      if(client->pools[poolid] && !client->pools[poolid]->ssd)
-           mem_weight -= client->pools[poolid]->weight;
-      else if(client->pools[poolid])
-            ssd_weight -= client->pools[poolid]->weight; 
+ 	
+	if(client->pools[poolid])
+        	mem_weight -= client->pools[poolid]->mem_weight;
+      
+	if(client->pools[poolid])
+        	ssd_weight -= client->pools[poolid]->ssd_weight; 
            
    }
    
-   if(!mem_weight) {
-       adjusted = true;
-       for (poolid = 0; poolid < MAX_POOLS_PER_CLIENT; poolid++){
-           if(client->pools[poolid] && !client->pools[poolid]->ssd)
-                   client->pools[poolid]->mem_entitlement = client->pools[poolid]->weight * 
-                                                        client->mem_entitlement / 100;
+   if(!mem_weight) {	
+	adjusted = true;
+
+ 	for (poolid = 0; poolid < MAX_POOLS_PER_CLIENT; poolid++){
+		if(client->pools[poolid])
+			client->pools[poolid]->mem_entitlement = 
+				client->pools[poolid]->mem_weight * client->mem_entitlement / 100;
            
-      }
+	}
    }
    
-  if(!ssd_weight) {
-       
-       adjusted = true;
-       for (poolid = 0; poolid < MAX_POOLS_PER_CLIENT; poolid++){
-           if(client->pools[poolid] && client->pools[poolid]->ssd)
-                   client->pools[poolid]->ssd_entitlement = client->pools[poolid]->weight * 
-                                                        client->ssd_entitlement / 100;
+   
+   if(!ssd_weight) {    
+	adjusted = true;
+
+	for (poolid = 0; poolid < MAX_POOLS_PER_CLIENT; poolid++){
+		if(client->pools[poolid])
+			client->pools[poolid]->ssd_entitlement = 
+				client->pools[poolid]->ssd_weight * client->ssd_entitlement / 100;
            
       }
    }
@@ -649,7 +654,7 @@ static inline int pool_overflow(struct tmem_pool *pool)
 /*
  *	Creation of a new pool
  */
-static int utmem_fs_new_pool(struct tmem_client *client, uint32_t flags, int weight)
+static int utmem_fs_new_pool(struct tmem_client *client, uint32_t flags, int mem_weight, int ssd_weight)
 {
         int poolid = -1;
         struct tmem_pool *pool;
@@ -676,13 +681,14 @@ static int utmem_fs_new_pool(struct tmem_client *client, uint32_t flags, int wei
         pool->client = client;
         pool->pool_id = poolid;
 
-        pool->weight = weight;
-        pool->ssd = false;
+        pool->mem_weight = mem_weight;
+        pool->ssd_weight = ssd_weight;
         atomic_set(&pool->evicting, -1);
        
         tmem_new_pool(pool, flags);
         client->pools[poolid] = pool;
-        check_and_readjust_allocations(client);
+        
+	check_and_readjust_allocations(client);
         utmemdp("utmem: created %s tmem pool, id=%d, client=%d\n",
                 flags & TMEM_POOL_PERSIST ? "persistent" : "ephemeral",
                 poolid, client->id);
@@ -699,74 +705,89 @@ static int utmem_fs_new_pool(struct tmem_client *client, uint32_t flags, int wei
 	ev = kzalloc(sizeof(struct eviction_info), GFP_KERNEL);
 	INIT_LIST_HEAD(&ev->head);
 	spin_lock_init(&ev->ev_lock); 
-	pool->eviction_info = ev;
+	pool->mem_eviction_info = ev;
+	
+	ev = kzalloc(sizeof(struct eviction_info), GFP_KERNEL);
+	INIT_LIST_HEAD(&ev->head);
+	spin_lock_init(&ev->ev_lock); 
+	pool->ssd_eviction_info = ev;
 out:
 	return poolid;
 }
 
 static int utmem_fs_destroy_pool(struct tmem_client *client, int pool_id)
 {
-     struct tmem_pool *pool = NULL;
-     int ret = -1;
-     struct eviction_info *ev;
+	struct tmem_pool *pool = NULL;
+	int ret = -1;
+	struct eviction_info *ev;
 
-     if (pool_id < 0)
-                goto out;
-     pool = client->pools[pool_id];
-     if (pool == NULL)
-             goto out;
-     /* wait for pool activity on other cpus to quiesce */
-     while (atomic_read(&pool->refcount) != 0)
-               ;
-    
-    client->pools[pool_id] = NULL;
+	if (pool_id < 0)
+		goto out;
+	pool = client->pools[pool_id];
+	
+	if (pool == NULL)
+		goto out;
+	
+	/* wait for pool activity on other cpus to quiesce */
+	while (atomic_read(&pool->refcount) != 0)
+	       ;
 
-    local_bh_disable();
-    ret = tmem_destroy_pool(pool);
-    local_bh_enable();
-    
-    sysfs_remove_group(pool->pool_kobj, &pool_attr_group);
-    kobject_del(pool->pool_kobj);
+	client->pools[pool_id] = NULL;
 
+	local_bh_disable();
+	ret = tmem_destroy_pool(pool);
+	local_bh_enable();
 
+	sysfs_remove_group(pool->pool_kobj, &pool_attr_group);
+	kobject_del(pool->pool_kobj);
 
-     ev = pool->eviction_info;
-     utmemassert(ev && list_empty(&ev->head));
-     kfree(ev);
+	ev = pool->mem_eviction_info;
+	utmemassert(ev && list_empty(&ev->head));
+	kfree(ev);
 
-    kfree(pool);
-    ret = 0;
-    check_and_readjust_allocations(client);
-    utmemdp("utmem: destroyed pool id=%d, cli_id=%d\n",
+	ev = pool->ssd_eviction_info;
+	utmemassert(ev && list_empty(&ev->head));
+	kfree(ev);
+
+	kfree(pool);
+	ret = 0;
+	check_and_readjust_allocations(client);
+	utmemdp("utmem: destroyed pool id=%d, cli_id=%d\n",
                         pool_id, client->id);
 out:
-        return ret;
+	return ret;
 
 }
 
 
 int utmem_set_pool_weight(struct tmem_client *client, int pool_id, int new_weight, int pool_type)
 {
-     struct tmem_pool *pool = NULL;
-     int ret = -1;
-     if (pool_id < 0)
-                goto out;
-     utmemdp("utmem: change weight pool id=%d, weight=%d\n",
-                        pool_id, new_weight);
-     pool = client->pools[pool_id];
-     if (pool == NULL)
-             goto out;
-     pool->weight = new_weight;
-     
-     if(pool_type && !pool->ssd)
-             pool->mem_entitlement = 0;
-     else if(!pool_type && pool->ssd)
-             pool->ssd_entitlement = 0;  
+	struct tmem_pool *pool = NULL;
+	int ret = -1;
+	
+	if (pool_id < 0)
+		goto out;
 
-     pool->ssd = pool_type ? true : false;
-     ret = check_and_readjust_allocations(client);
-     out:
-         return ret;
+	pool = client->pools[pool_id];
+	if (pool == NULL)
+	     goto out;
+	//pool->weight = new_weight;
+
+	if(pool_type==MEMORY)
+		pool->mem_weight = new_weight;
+	else if (pool_type==SSD)
+		pool->ssd_weight = new_weight;  
+	else
+		goto out; 
+
+	
+	utmemdp("utmem: change weight pool id=%d, weight=%d, ssd_type=%d\n",
+			pool_id, new_weight, pool_type);
+
+	//pool->ssd = pool_type ? true : false;
+	ret = check_and_readjust_allocations(client);
+out:
+	return ret;
   
 }
 #if 0
@@ -843,9 +864,11 @@ static int evict_memory_from_client(struct tmem_client *client)
    int i;
 
    for(i=0; i<MAX_POOLS_PER_CLIENT && client->pools[i]; ++i){
-         unsigned used;
+         
+	 unsigned used;
          pool = client->pools[i];
-         used = atomic_read(&pool->used);
+	 /* TODO: Change */
+         used = atomic_read(&pool->ssd_used);
 
          if(!pool->mem_entitlement && used)
                goto got_pool;
@@ -1068,17 +1091,17 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
         WARN_ON(client != pool->client);
 
 	/*
-		TODO: handle both weights
-	*/
+		TODO: eviction
+
         entitlement = pool->ssd ? pool->ssd_entitlement : pool->mem_entitlement;
        
         if(!entitlement)
                 goto out;        
 
-	/*
+	
 		Work-conserving nature of the tmem-backend that triggers eviction
 		only on reaching system limits
-	*/
+	
         if(client->g->mem_limit - THRESH < atomic_read(&client->g->mem_used)){
              if(atomic_inc_and_test(&client->g->evicting)){
                        utmem_evict_memory(client->g);
@@ -1096,6 +1119,7 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
         if(pool_overflow(pool) == 0)
             goto out;  
 #endif
+	*/
 
 	// local_irq_save(flags);
         ret = tmem_put(pool, oidp, index, (char *)(page),
@@ -1226,112 +1250,112 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 	
 	case TMEM_NEW_POOL:
 	case TMEM_NEW_CGPOOL:
-			      ret = utmem_fs_new_pool(client, op->u.cnew.flags, op->u.cnew.weight); 
-			      break;
+			ret = utmem_fs_new_pool(client, op->u.cnew.flags, op->u.cnew.weight, op->u.cnew.weight); 
+			break;
 			    
 	case TMEM_DESTROY_POOL:
 	case TMEM_DESTROY_CGPOOL:
-			      ret = utmem_fs_destroy_pool(client, op->pool_id); 
-			      break;
+			ret = utmem_fs_destroy_pool(client, op->pool_id); 
+			break;
+
 	case TMEM_SET_POOL_WEIGHT:
-			      ret = utmem_set_pool_weight(client, op->pool_id, op->u.cnew.weight, op->u.cnew.flags); 
-			      break;
+			ret = utmem_set_pool_weight(client, op->pool_id, op->u.cnew.weight, op->u.cnew.flags); 
+			break;
+
 	case TMEM_PUT_PAGE:
-			 {
-			  struct tmem_oid *oidp = (struct tmem_oid *)(&op->u.gen.oid[0]);
-			  struct page *page = NULL;
-		          // int64_t start,end;
-			  // rdtscll(start);
-		          // if(is_invalid_pfn(tmem_op->u.gen.gmfn))
-			  // return -EINVAL;
-			  page = get_mpage(vcpu->kvm, op->u.gen.gmfn);
-			  if (IS_ERR_OR_NULL(page)) {
+		{
+			struct tmem_oid *oidp = (struct tmem_oid *)(&op->u.gen.oid[0]);
+			struct page *page = NULL;
+			// int64_t start,end;
+			// rdtscll(start);
+			// if(is_invalid_pfn(tmem_op->u.gen.gmfn))
+			// return -EINVAL;
+			page = get_mpage(vcpu->kvm, op->u.gen.gmfn);
+			if (IS_ERR_OR_NULL(page)) {
 				printk(KERN_INFO "Invalid page\n");
 				return -EINVAL;
-			  }
+			}
 
-			 
-			  WARN_ON(oidp->oid[1]);
-			  oidp->oid[1] = (unsigned long) client;
-			  ret = utmem_put_page(client, op->pool_id, oidp, op->u.gen.index, page);
-			  
-			  kvm_release_page_clean(page);
-			
-			  /*
-			  rdtscll(end);
-			  if (ret == 0){
-				 TPRINT("tmem_sput",end-start);
-			  }else{
-				TPRINT("tmem_fput",end-start);
-			  }
-			 */
-			  break;
-		       }
+
+			WARN_ON(oidp->oid[1]);
+			oidp->oid[1] = (unsigned long) client;
+			ret = utmem_put_page(client, op->pool_id, oidp, op->u.gen.index, page);
+
+			kvm_release_page_clean(page);
+
+			/*
+			rdtscll(end);
+			if (ret == 0){
+			 TPRINT("tmem_sput",end-start);
+			}else{
+			TPRINT("tmem_fput",end-start);
+			}
+			*/
+			break;
+	       }
 	case TMEM_GET_PAGE:
-			 {
-			  struct tmem_oid *oidp = (struct tmem_oid *)(&op->u.gen.oid[0]);
-			  struct page *page = NULL;
-		      //   int64_t start,end;
-		      //   rdtscll(start);
-		      //     if(is_invalid_pfn(op->u.gen.gmfn))
-		      //          return -EINVAL;
-		      //     page = gfn_to_page(vcpu->kvm, tmem_op->u.gen.gmfn);
-			  page = get_mpage(vcpu->kvm, op->u.gen.gmfn);
-			  if (IS_ERR_OR_NULL(page)){
-				printk(KERN_INFO "Invalid page\n");
-				return -EINVAL;
-			  }
-			  if(PageKsm(page)){
-			      printk(KERN_INFO "Called on shared page\n");
-			      kvm_release_page_clean(page);
-			      return -EINVAL;
-			  }
-			    
-			  WARN_ON(oidp->oid[1]);
-			  oidp->oid[1] = (unsigned long)client;
+		{
+			struct tmem_oid *oidp = (struct tmem_oid *)(&op->u.gen.oid[0]);
+			struct page *page = NULL;
+			//   int64_t start,end;
+			//   rdtscll(start);
+			//     if(is_invalid_pfn(op->u.gen.gmfn))
+			//          return -EINVAL;
+			//     page = gfn_to_page(vcpu->kvm, tmem_op->u.gen.gmfn);
+			page = get_mpage(vcpu->kvm, op->u.gen.gmfn);
+			if (IS_ERR_OR_NULL(page)){
+			printk(KERN_INFO "Invalid page\n");
+			return -EINVAL;
+			}
+			if(PageKsm(page)){
+			printk(KERN_INFO "Called on shared page\n");
+			kvm_release_page_clean(page);
+			return -EINVAL;
+			}
 
-			  ret = utmem_get_page(client, op->pool_id, oidp, op->u.gen.index, page);
-			  kvm_release_page_dirty(page);
+			WARN_ON(oidp->oid[1]);
+			oidp->oid[1] = (unsigned long)client;
+
+			ret = utmem_get_page(client, op->pool_id, oidp, op->u.gen.index, page);
+			kvm_release_page_dirty(page);
 			#if 0
-			  rdtscll(end);
-			  if (ret == 0){
-				 TPRINT("tmem_get",end-start);
-			  }else{
-				TPRINT("tmem_fget",end-start);
-			  }
+			rdtscll(end);
+			if (ret == 0){
+			 TPRINT("tmem_get",end-start);
+			}else{
+			TPRINT("tmem_fget",end-start);
+			}
 			#endif
-			  break;
-			 }
-	   case TMEM_FLUSH_PAGE:
-			    {
-				 struct tmem_oid *oidp = (struct tmem_oid *)(&op->u.gen.oid[0]);
-				
-			    
-				 WARN_ON(oidp->oid[1]);
-				 oidp->oid[1] = (unsigned long)client;
-
-				 ret = utmem_flush_page(client, op->pool_id, oidp, op->u.gen.index);
-				 break;
-			     }
-	    case TMEM_FLUSH_OBJECT:
-			     {
-				 struct tmem_oid *oidp = (struct tmem_oid *)(&op->u.gen.oid[0]);
-				
-			    
-				 WARN_ON(oidp->oid[1]);
-				 oidp->oid[1] = (unsigned long)client;
-
-				 ret = utmem_flush_object(client, op->pool_id, oidp);
-				 break;
-			     }
+			break;
+		 }
+	case TMEM_FLUSH_PAGE:
+		{
+			struct tmem_oid *oidp = (struct tmem_oid *)(&op->u.gen.oid[0]);
 
 
+			WARN_ON(oidp->oid[1]);
+			oidp->oid[1] = (unsigned long)client;
+
+			ret = utmem_flush_page(client, op->pool_id, oidp, op->u.gen.index);
+			break;
+		}
+	case TMEM_FLUSH_OBJECT:
+		{
+			struct tmem_oid *oidp = (struct tmem_oid *)(&op->u.gen.oid[0]);
+
+
+			WARN_ON(oidp->oid[1]);
+			oidp->oid[1] = (unsigned long)client;
+
+			ret = utmem_flush_object(client, op->pool_id, oidp);
+			break;
+		}
 	default:
-		   break;
+			break;
 	}
 
 	out:
-    return ret;
+	return ret;
 }
 
 /*
@@ -1343,53 +1367,58 @@ int utmem_vmshutdown(struct kvm *kvm)
 	int i, ret = 0;
 	struct tmem_client *client = find_tmem_client(kvm, global);
 	if(!client)
-	 return -1;
+		return -1;
 
 	for(i=0; i < MAX_POOLS_PER_CLIENT; ++i){
-	      pool = client->pools[i];
-	      if (pool)
-		   ret |= utmem_fs_destroy_pool(client, pool->pool_id);
+		pool = client->pools[i];
+		if (pool)
+	   	ret |= utmem_fs_destroy_pool(client, pool->pool_id);
 	}
-	
+
 	ret |= destroy_tmem_client(kvm, global);
 	return ret;
 }
 
+
 int utmem_init_module(void)
 {
 
-        global = alloc_global();
+	global = alloc_global();
 
 	if(!global)
-              return -ENOMEM;
-        
-        handle_tmem_hcall = utmem_hypercall;       
-        handle_vm_destroy = utmem_vmshutdown;
+		return -ENOMEM;
 
-        global->utmem_kobj = kobject_create_and_add("utmem", mm_kobj);
-        if(global->utmem_kobj){
-              if(sysfs_create_group(global->utmem_kobj, &utmem_attr_group))
-                       printk(KERN_INFO "gcache: can't create sysfs\n");
-        }else
-               printk(KERN_INFO "gcache: can't create sysfs\n");
-        
-        init_utmem(global);
-        return 0;
-    }
+	handle_tmem_hcall = utmem_hypercall;       
+	handle_vm_destroy = utmem_vmshutdown;
+
+	global->utmem_kobj = kobject_create_and_add("utmem", mm_kobj);
+	
+	if(global->utmem_kobj){
+		if(sysfs_create_group(global->utmem_kobj, &utmem_attr_group))
+	       		printk(KERN_INFO "gcache: can't create sysfs\n");
+	}
+	else{
+		printk(KERN_INFO "gcache: can't create sysfs\n");
+	}
+
+	init_utmem(global);
+	return 0;
+}
+	
 void utmem_cleanup_module(void)
-    {
-        handle_tmem_hcall = NULL;       
-        handle_vm_destroy = NULL;
+{
+	handle_tmem_hcall = NULL;       
+	handle_vm_destroy = NULL;
 
-        if(global->utmem_kobj){
-                  sysfs_remove_group(global->utmem_kobj, &utmem_attr_group);
-                  kobject_del(global->utmem_kobj);
-        }
+	if(global->utmem_kobj){
+		sysfs_remove_group(global->utmem_kobj, &utmem_attr_group);
+		kobject_del(global->utmem_kobj);
+	}
 
-        cleanup_utmem(global);
+	cleanup_utmem(global);
 
-        kfree(global);
-    }
+	kfree(global);
+}
 
 module_init(utmem_init_module);
 module_exit(utmem_cleanup_module);

@@ -1,1 +1,1 @@
-cmd_/home/deba/prashanth/tmem_module-1.0/cgtmem.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/deba/prashanth/tmem_module-1.0/cgtmem.ko /home/deba/prashanth/tmem_module-1.0/cgtmem.o /home/deba/prashanth/tmem_module-1.0/cgtmem.mod.o
+cmd_/home/deba/prashanth/tmem_module-2.0/cgtmem.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/deba/prashanth/tmem_module-2.0/cgtmem.ko /home/deba/prashanth/tmem_module-2.0/cgtmem.o /home/deba/prashanth/tmem_module-2.0/cgtmem.mod.o

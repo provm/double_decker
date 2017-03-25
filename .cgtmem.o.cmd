@@ -1,1 +1,1 @@
-cmd_/home/deba/prashanth/tmem_module-1.0/cgtmem.o := ld -m elf_x86_64   -r -o /home/deba/prashanth/tmem_module-1.0/cgtmem.o /home/deba/prashanth/tmem_module-1.0/tmem.o /home/deba/prashanth/tmem_module-1.0/utmem.o /home/deba/prashanth/tmem_module-1.0/tcache.o 
+cmd_/home/deba/prashanth/tmem_module-2.0/cgtmem.o := ld -m elf_x86_64   -r -o /home/deba/prashanth/tmem_module-2.0/cgtmem.o /home/deba/prashanth/tmem_module-2.0/tmem.o /home/deba/prashanth/tmem_module-2.0/utmem.o /home/deba/prashanth/tmem_module-2.0/tcache.o 

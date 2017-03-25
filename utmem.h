@@ -115,8 +115,8 @@ struct global_info{
 
 
 struct eviction_info{
-			spinlock_t ev_lock;
-			struct list_head head;
+	spinlock_t ev_lock;
+	struct list_head head;
 };
 
 static inline struct global_info * alloc_global(void)

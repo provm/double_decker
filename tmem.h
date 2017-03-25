@@ -76,22 +76,24 @@ struct tmem_hashbucket {
  * A pool struct to keep track of individual pools per client 
  */
 struct tmem_pool {
-	void *client; /* "up" for some clients, avoids table lookup */
-        void *eviction_info;
 	struct list_head pool_list;
 	uint32_t pool_id;
+	
 	bool persistent;
 	bool shared;
-        bool ssd;
-        int weight;
+        //bool ssd;
+        
+	int mem_weight;
+	int ssd_weight;
         
         unsigned mem_entitlement; 
         unsigned ssd_entitlement; 
-        struct kobject *pool_kobj;
+        
+	struct kobject *pool_kobj;
  
 	atomic_t obj_count;
 	atomic_t refcount;
-        atomic_t used;
+        atomic_t mem_used;
         atomic_t ssd_used;
         atomic_t evicting;
 
@@ -100,7 +102,13 @@ struct tmem_pool {
         unsigned total_gets;
         unsigned succ_flushes;
         unsigned evicts;
+	
+	/* "up" for some clients, avoids table lookup */
+	void *client;	
 
+        void *mem_eviction_info;
+        void *ssd_eviction_info;
+	
 	struct tmem_hashbucket hashbucket[TMEM_HASH_BUCKETS];
 	DECL_SENTINEL
 };

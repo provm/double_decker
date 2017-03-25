@@ -273,11 +273,12 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
    void *page;
    struct page *spage = (struct page *)data;
    void *src,*dst;
+   
    struct tmem_client *client = pool->client;
+   struct eviction_info *ev;
+
 #ifdef GLOBAL_EVICT
-   struct eviction_info *ev = client->eviction_info;
-#else
-   struct eviction_info *ev = pool->eviction_info;
+   ev = client->eviction_info;
 #endif
 
    utmem_pampd *n = NULL;
@@ -315,24 +316,35 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
    n->tmem_obj = tmem_obj;
    n->index = index;
    
-   if(pool->ssd){
-        ssd_alloc_and_write(client->g, n);
-        n->type = SSD;
-        
-        atomic_inc(&client->ssd_used); 
-        atomic_inc(&client->g->ssd_used);
-        atomic_inc(&pool->ssd_used);
+   /*
+	Might have to change for eviction logic 
+   */
+   if(atomic_read(&pool->mem_used)>=pool->mem_entitlement){
+	ssd_alloc_and_write(client->g, n);
+	n->type = SSD;
+
+	atomic_inc(&client->ssd_used); 
+	atomic_inc(&client->g->ssd_used);
+	atomic_inc(&pool->ssd_used);
+
+	ev = pool->ssd_eviction_info;	
+	spin_lock(&ev->ev_lock); 
+	list_add_tail(&n->entry_list, &ev->head); 
+	spin_unlock(&ev->ev_lock); 
        
-   }else{
-           n->type = MEMORY;
-           atomic_inc(&client->mem_used); 
-           atomic_inc(&client->g->mem_used);
-           atomic_inc(&pool->used);
+   }
+   else{
+        n->type = MEMORY;
+        atomic_inc(&client->mem_used); 
+        atomic_inc(&client->g->mem_used);
+        atomic_inc(&pool->mem_used);
+
+	ev = pool->memory_eviction_info;
+	spin_lock(&ev->ev_lock); 
+	list_add_tail(&n->entry_list, &ev->head); 
+	spin_unlock(&ev->ev_lock); 
    }
 
-   spin_lock(&ev->ev_lock); 
-   list_add_tail(&n->entry_list, &ev->head); 
-   spin_unlock(&ev->ev_lock); 
  
 
 /*  TODO
@@ -360,43 +372,54 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 {
    void *dst;
    int ret = -1;
-   utmem_pampd *n = (utmem_pampd *) pampd;
-   struct page *page = (struct page *)data;
    
+   utmem_pampd *n = (utmem_pampd *) pampd;
+   
+   struct page *page = (struct page *)data;
    struct tmem_client *client = pool->client;
-
    struct tmem_obj *tmem;
+   struct eviction_info *ev;
+
+/* TODO: GLOBAL EVICT FOR SSD MEM */
 #ifdef GLOBAL_EVICT
-   struct eviction_info *ev = client->eviction_info;
-#else
-   struct eviction_info *ev = pool->eviction_info;
+   ev = client->eviction_info;
 #endif
    BUG_ON(!n);
    
    tmem = (struct tmem_obj *)n->tmem_obj;
-   
-//   utmemassert(n->page);
 
-   if(n->type == SSD){
-             ret = read_and_free_from_ssd(client->g, page, n);
-             atomic_dec(&client->ssd_used);
-             atomic_dec(&client->g->ssd_used);
-             atomic_dec(&pool->ssd_used);
-   }else{
-             dst = kmap_atomic(page);
-             memcpy(dst, (void *)n->page, PAGE_SIZE);
-             kunmap_atomic(dst);    
-             free_page(n->page);
-             atomic_dec(&client->mem_used);
-             atomic_dec(&client->g->mem_used);
-             atomic_dec(&pool->used);
-             ret = 0;
+   if(n->type == SSD){		
+	ret = read_and_free_from_ssd(client->g, page, n);
+	atomic_dec(&client->ssd_used);
+	atomic_dec(&client->g->ssd_used);
+	atomic_dec(&pool->ssd_used);
+
+	
+	/* TODO: Gapa from LIFO FIFO etc.. */
+	ev = pool->ssd_eviction_info;
+	spin_lock(&ev->ev_lock); 
+	list_del(&n->entry_list);
+	spin_unlock(&ev->ev_lock);
+ 
+   }
+   else{
+	dst = kmap_atomic(page);
+	memcpy(dst, (void *)n->page, PAGE_SIZE);
+	kunmap_atomic(dst);    
+	free_page(n->page);
+	atomic_dec(&client->mem_used);
+	atomic_dec(&client->g->mem_used);
+	atomic_dec(&pool->mem_used);
+	
+	/* TODO: Gapa from LIFO FIFO etc.. */
+	ev = pool->mem_eviction_info;
+	spin_lock(&ev->ev_lock); 
+	list_del(&n->entry_list);
+	spin_unlock(&ev->ev_lock);
+	
+	ret = 0;
    }
 
-/*TODO Gapa from LIFO FIFO etc.. */
-   spin_lock(&ev->ev_lock); 
-   list_del(&n->entry_list);
-   spin_unlock(&ev->ev_lock); 
    
    kmem_cache_free(utmem_pampd_cache, n);
    return ret;
@@ -408,31 +431,48 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 {
    utmem_pampd *n = (utmem_pampd *) pampd;
    struct tmem_client *client = pool->client;
+
+
+   struct eviction_info *ev;
+
+/* TODO: GLOBAL EVICT FOR SSD MEM */
 #ifdef GLOBAL_EVICT
-   struct eviction_info *ev = client->eviction_info;
-#else
-   struct eviction_info *ev = pool->eviction_info;
+   ev = client->eviction_info;
 #endif
-   
-
-//   struct tmem_obj *tmem = (struct tmem_obj *)n->tmem_obj;
    BUG_ON(!n);
-
-   if(n->type == SSD){
-       free_ssd_block(client->g, n);
-       atomic_dec(&client->ssd_used);
-       atomic_dec(&client->g->ssd_used);
-       atomic_dec(&pool->ssd_used);
-   }else{
-       free_page(n->page);
-       atomic_dec(&client->mem_used);
-       atomic_dec(&client->g->mem_used);
-       atomic_dec(&pool->used);
-   }
-   spin_lock(&ev->ev_lock); 
-   list_del(&n->entry_list);
-   spin_unlock(&ev->ev_lock); 
    
+   if(n->type == SSD){		
+	ret = read_and_free_from_ssd(client->g, page, n);
+	atomic_dec(&client->ssd_used);
+	atomic_dec(&client->g->ssd_used);
+	atomic_dec(&pool->ssd_used);
+
+	
+	/* TODO: Gapa from LIFO FIFO etc.. */
+	ev = pool->ssd_eviction_info;
+	spin_lock(&ev->ev_lock); 
+	list_del(&n->entry_list);
+	spin_unlock(&ev->ev_lock);
+ 
+   }
+   else{
+	dst = kmap_atomic(page);
+	memcpy(dst, (void *)n->page, PAGE_SIZE);
+	kunmap_atomic(dst);    
+	free_page(n->page);
+	atomic_dec(&client->mem_used);
+	atomic_dec(&client->g->mem_used);
+	atomic_dec(&pool->mem_used);
+	
+	/* TODO: Gapa from LIFO FIFO etc.. */
+	ev = pool->mem_eviction_info;
+	spin_lock(&ev->ev_lock); 
+	list_del(&n->entry_list);
+	spin_unlock(&ev->ev_lock);
+	
+	ret = 0;
+   }
+
    kmem_cache_free(utmem_pampd_cache, n);
    return;
     
