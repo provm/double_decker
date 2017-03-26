@@ -241,23 +241,26 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
        struct bio *bio;
        int uptodate;
  
-       printk("read_and_free_from_ssd-1\n");
+       //printk("read_and_free_from_ssd-1\n");
        BUG_ON(!page);
 
-       printk("read_and_free_from_ssd-2\n");
+       //printk("read_and_free_from_ssd-2\n");
       
 
        while(n->status != UPTODATE){
-         /*TODO IO on the way, Is there a better way
-           to handle this? 
-         asm volatile(
+         /*
+		TODO: IO on the way, Is there a better way
+           	to handle this? 
+        */
+	printk("Waiting for UPDATE IN SSD\n"); 
+	asm volatile(
                      "pause"
          );
-	 */
+	 
        }
 
       
-       printk("read_and_free_from_ssd-3\n");
+       //printk("read_and_free_from_ssd-3\n");
 
        lock_page(page);
        bio = get_ssd_bio(GFP_KERNEL, page, end_ssd_bio_read, n);  
@@ -406,7 +409,7 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
    tmem = (struct tmem_obj *)n->tmem_obj;
 
 
-   printk("data_and_free-1 SSD:%d\n", n->type);
+   //printk("data_and_free-1 SSD:%d\n", n->type);
 
    if(n->type == SSD){		
 	ret = read_and_free_from_ssd(client->g, page, n);
@@ -415,7 +418,7 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	atomic_dec(&pool->ssd_used);
 
 	
-       	printk("data_and_free-2\n");
+       	//printk("data_and_free-2\n");
 	/* TODO: Gapa from LIFO FIFO etc.. */
 	ev = pool->ssd_eviction_info;
 	spin_lock(&ev->ev_lock); 
@@ -433,7 +436,7 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	atomic_dec(&pool->mem_used);
 	
 	
-       	printk("data_and_free-3\n");
+       	//printk("data_and_free-3\n");
 	/* TODO: Gapa from LIFO FIFO etc.. */
 	ev = pool->mem_eviction_info;
 	spin_lock(&ev->ev_lock); 
@@ -444,7 +447,7 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
    }
 
    
-   printk("data_and_free-4\n");
+   //printk("data_and_free-4\n");
 
    
    kmem_cache_free(utmem_pampd_cache, n);

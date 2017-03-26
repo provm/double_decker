@@ -542,7 +542,10 @@ int tmem_put(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index, char
 	struct tmem_hashbucket *hb;
 
 	hb = &pool->hashbucket[tmem_oid_hash(oidp)];
+	
+	printk("PUT-1: %lu-%lu-%lu-%lu SSD:%d \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index, is_ssd);
 	spin_lock(&hb->lock);
+
 	obj = objfound = tmem_obj_find(hb, oidp);
 	if (obj != NULL) {
 		pampd = tmem_pampd_lookup_in_obj(objfound, index);
@@ -550,7 +553,7 @@ int tmem_put(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index, char
                        #ifdef TMEM_PEPHEMERAL
                         if(tmem_pamops.pephemeral_create){
                             void *old_pampd = pampd;
-	                    pampd = (*tmem_pamops.pephemeral_create)(pampd, data, size, raw, ephemeral						,obj->pool, &obj->oid, index, obj, is_ssd);
+	                    pampd = (*tmem_pamops.pephemeral_create)(pampd, data, size, raw, ephemeral,obj->pool, &obj->oid, index, obj, is_ssd);
                             /*If pampd is NULL => file block has changed but not flushed*/
                             if(pampd)
                                  goto out;
@@ -582,7 +585,7 @@ int tmem_put(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index, char
 	}
 	BUG_ON(obj == NULL);
 	BUG_ON(((objnew != obj) && (objfound != obj)) || (objnew == objfound));
-	
+
 	pampd = (*tmem_pamops.create)(data, size, raw, ephemeral,
 					obj->pool, &obj->oid, index, obj, is_ssd);
 	if (unlikely(pampd == NULL)){
@@ -605,6 +608,8 @@ free:
 	}
 out:
 	spin_unlock(&hb->lock);
+	
+	printk("PUT-2: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
 	return ret;
 }
 
@@ -637,6 +642,8 @@ int tmem_get(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index,
         bool handled_already = false;
    #endif
 	hb = &pool->hashbucket[tmem_oid_hash(oidp)];
+
+	printk("GET-1: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
 	spin_lock(&hb->lock);
 	lock_held = true;
 	obj = tmem_obj_find(hb, oidp);
@@ -692,6 +699,8 @@ int tmem_get(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index,
 out:
 	if (lock_held)
 		spin_unlock(&hb->lock);
+	
+	printk("GET-2: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
 	return ret;
 }
 
