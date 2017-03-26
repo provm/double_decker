@@ -206,7 +206,7 @@ struct tmem_objnode {
 /* pampd abstract datatype methods provided by the PAM implementation */
 struct tmem_pamops {
 	void *(*create)(char *, size_t, bool, int,
-			struct tmem_pool *, struct tmem_oid *, uint32_t, void *);
+			struct tmem_pool *, struct tmem_oid *, uint32_t, void *, bool);
 	int (*get_data)(char *, size_t *, bool, void *, struct tmem_pool *,
 				struct tmem_oid *, uint32_t);
 	int (*get_data_and_free)(char *, size_t *, bool, void *,
@@ -225,7 +225,7 @@ struct tmem_pamops {
 				struct tmem_pool *, struct tmem_oid *,
 				uint32_t);
 	void *(*pephemeral_create)(void *, char *, size_t, bool, int,
-			struct tmem_pool *, struct tmem_oid *, uint32_t, void *);
+			struct tmem_pool *, struct tmem_oid *, uint32_t, void *, bool);
         
         #endif
 };
@@ -242,7 +242,7 @@ extern void tmem_register_hostops(struct tmem_hostops *m);
 
 /* core tmem accessor functions */
 extern int tmem_put(struct tmem_pool *, struct tmem_oid *, uint32_t index,
-			char *, size_t, bool, bool);
+			char *, size_t, bool, bool, bool);
 extern int tmem_get(struct tmem_pool *, struct tmem_oid *, uint32_t index,
 			char *, size_t *, bool, int);
 extern int tmem_replace(struct tmem_pool *, struct tmem_oid *, uint32_t index,

@@ -241,14 +241,23 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
        struct bio *bio;
        int uptodate;
  
+       printk("read_and_free_from_ssd-1\n");
        BUG_ON(!page);
+
+       printk("read_and_free_from_ssd-2\n");
+      
+
        while(n->status != UPTODATE){
          /*TODO IO on the way, Is there a better way
-           to handle this?*/ 
+           to handle this? 
          asm volatile(
                      "pause"
          );
+	 */
        }
+
+      
+       printk("read_and_free_from_ssd-3\n");
 
        lock_page(page);
        bio = get_ssd_bio(GFP_KERNEL, page, end_ssd_bio_read, n);  
@@ -271,7 +280,7 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 
 static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
                                 struct tmem_pool *pool, struct tmem_oid *oid,
-                                 uint32_t index,  void* tmem_obj)
+                                 uint32_t index,  void* tmem_obj, bool is_ssd)
 {
    void *page;
    struct page *spage = (struct page *)data;
@@ -312,8 +321,11 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
    kunmap_atomic(src);    
 
    n = kmem_cache_alloc(utmem_pampd_cache, UTMEM_GFP_MASK);
-   
-   BUG_ON(!n); 
+   if(!n){
+   	//BUG_ON(!n);
+	free_page((unsigned long) page);
+	goto wakeup_and_failed;
+   }
 
    n->page = (unsigned long) page;
    n->tmem_obj = tmem_obj;
@@ -322,7 +334,7 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
    /*
 	Might have to change for eviction logic 
    */
-   if(atomic_read(&pool->mem_used)>=pool->mem_entitlement){
+   if(is_ssd){
 	
 	ssd_alloc_and_write(client->g, n);
 	n->type = SSD;
@@ -393,6 +405,9 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
    
    tmem = (struct tmem_obj *)n->tmem_obj;
 
+
+   printk("data_and_free-1 SSD:%d\n", n->type);
+
    if(n->type == SSD){		
 	ret = read_and_free_from_ssd(client->g, page, n);
 	atomic_dec(&client->ssd_used);
@@ -400,6 +415,7 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	atomic_dec(&pool->ssd_used);
 
 	
+       	printk("data_and_free-2\n");
 	/* TODO: Gapa from LIFO FIFO etc.. */
 	ev = pool->ssd_eviction_info;
 	spin_lock(&ev->ev_lock); 
@@ -416,6 +432,8 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	atomic_dec(&client->g->mem_used);
 	atomic_dec(&pool->mem_used);
 	
+	
+       	printk("data_and_free-3\n");
 	/* TODO: Gapa from LIFO FIFO etc.. */
 	ev = pool->mem_eviction_info;
 	spin_lock(&ev->ev_lock); 
@@ -424,6 +442,9 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	
 	ret = 0;
    }
+
+   
+   printk("data_and_free-4\n");
 
    
    kmem_cache_free(utmem_pampd_cache, n);

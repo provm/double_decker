@@ -478,8 +478,7 @@ static ssize_t pool_used_show(struct kobject *kobj, struct kobj_attribute *attr,
         if(!pool)
                return -EINVAL;
 
-        return sprintf(buf, "MEM-%u SSD-%u\n", 
-		atomic_read(&pool->mem_used), atomic_read(&pool->ssd_used));
+        return sprintf(buf, "%u\n", atomic_read(&pool->mem_used));
 }
 static struct kobj_attribute pool_used_attribute = __ATTR(mem_used,0444,pool_used_show,NULL);
 
@@ -1122,8 +1121,15 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
 	*/
 
 	// local_irq_save(flags);
-        ret = tmem_put(pool, oidp, index, (char *)(page),
-                                PAGE_SIZE, 0, is_ephemeral(pool));
+
+	if(pool->mem_entitlement>atomic_read(&pool->mem_used)){
+        	ret = tmem_put(pool, oidp, index, (char *)(page),
+                                PAGE_SIZE, 0, is_ephemeral(pool), MEMORY);
+	}
+	else if(pool->ssd_entitlement>atomic_read(&pool->ssd_used)){
+        	ret = tmem_put(pool, oidp, index, (char *)(page),
+                                PAGE_SIZE, 0, is_ephemeral(pool), SSD);
+	}
 	// local_irq_restore(flags);
 out:
         if(!ret)

@@ -534,7 +534,7 @@ static void tmem_pampd_destroy_all_in_obj(struct tmem_obj *obj)
  * Since these "duplicate puts" are relatively rare, this implementation
  * always flushes for simplicity.
  */
-int tmem_put(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index, char *data, size_t size, bool raw, bool ephemeral)
+int tmem_put(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index, char *data, size_t size, bool raw, bool ephemeral, bool is_ssd)
 {
 	struct tmem_obj *obj = NULL, *objfound = NULL, *objnew = NULL;
 	void *pampd = NULL, *pampd_del = NULL;
@@ -550,7 +550,7 @@ int tmem_put(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index, char
                        #ifdef TMEM_PEPHEMERAL
                         if(tmem_pamops.pephemeral_create){
                             void *old_pampd = pampd;
-	                    pampd = (*tmem_pamops.pephemeral_create)(pampd, data, size, raw, ephemeral						,obj->pool, &obj->oid, index,obj);
+	                    pampd = (*tmem_pamops.pephemeral_create)(pampd, data, size, raw, ephemeral						,obj->pool, &obj->oid, index, obj, is_ssd);
                             /*If pampd is NULL => file block has changed but not flushed*/
                             if(pampd)
                                  goto out;
@@ -584,7 +584,7 @@ int tmem_put(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index, char
 	BUG_ON(((objnew != obj) && (objfound != obj)) || (objnew == objfound));
 	
 	pampd = (*tmem_pamops.create)(data, size, raw, ephemeral,
-					obj->pool, &obj->oid, index,obj);
+					obj->pool, &obj->oid, index, obj, is_ssd);
 	if (unlikely(pampd == NULL)){
 		goto free;
         }
