@@ -1408,6 +1408,9 @@ int utmem_init_module(void)
 	}
 
 	init_utmem(global);
+
+	printk("---------------------------------------CGTMEM INSERTED SUCESSFULLY ------------------------------------------!\n");
+
 	return 0;
 }
 	

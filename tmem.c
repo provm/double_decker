@@ -543,7 +543,7 @@ int tmem_put(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index, char
 
 	hb = &pool->hashbucket[tmem_oid_hash(oidp)];
 	
-	printk("PUT-1: %lu-%lu-%lu-%lu SSD:%d \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index, is_ssd);
+	//printk("PUT-1: %lu-%lu-%lu-%lu SSD:%d \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index, is_ssd);
 	spin_lock(&hb->lock);
 
 	obj = objfound = tmem_obj_find(hb, oidp);
@@ -609,7 +609,7 @@ free:
 out:
 	spin_unlock(&hb->lock);
 	
-	printk("PUT-2: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
+	//printk("PUT-2: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
 	return ret;
 }
 
@@ -643,8 +643,10 @@ int tmem_get(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index,
    #endif
 	hb = &pool->hashbucket[tmem_oid_hash(oidp)];
 
-	printk("GET-1: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
+	//printk("GET-1: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
 	spin_lock(&hb->lock);
+
+	//printk("GET-2: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
 	lock_held = true;
 	obj = tmem_obj_find(hb, oidp);
 	if (obj == NULL){
@@ -700,7 +702,7 @@ out:
 	if (lock_held)
 		spin_unlock(&hb->lock);
 	
-	printk("GET-2: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
+	//printk("GET-3: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
 	return ret;
 }
 
