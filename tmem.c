@@ -972,3 +972,7 @@ void tmem_new_pool(struct tmem_pool *pool, uint32_t flags)
 	pool->persistent = persistent;
 	pool->shared = shared;
 }
+
+
+
+

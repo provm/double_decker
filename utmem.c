@@ -1230,8 +1230,30 @@ static int utmem_cg_destroy_pool(struct tmem_client *client)
 
 static struct page* get_mpage(struct kvm *kvm, unsigned long gmfn)
 {
-   return gfn_to_page(kvm, gmfn);
+	return gfn_to_page(kvm, gmfn);
 }
+
+/*
+*	Move from memory to ssd	
+*/
+int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages);
+
+int utmem_move_mem_to_ssd(struct tmem_client *client, int pool_id, int num_of_pages){
+
+	int ret = -1;
+	struct tmem_pool *pool;
+	
+	pool = client->pools[pool_id];
+	if(unlikely(pool == NULL))
+		goto out;
+	WARN_ON(client != pool->client);
+			
+	ret = tcache_move_mem_to_ssd(pool, num_of_pages);
+
+out:
+	return ret;
+}
+
 
 /*
  *	Hypercall Interface

@@ -626,6 +626,43 @@ static void utmem_obj_free(struct tmem_obj *obj, struct tmem_pool *pool)
         kmem_cache_free(utmem_obj_cache, obj);
 }
 
+
+int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
+{
+	int i, ret = -1;
+	utmem_pampd *n = NULL; 	
+	struct tmem_client *client = pool->client;
+	struct eviction_info *mem_ev = pool->mem_eviction_info;
+	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
+	
+	for(i=0; i<num_of_pages; i++){
+
+		spin_lock(&mem_ev->ev_lock); 
+		n = list_first_entry(&mem_ev->head, struct utmem_pampd, entry_list);
+		spin_unlock(&mem_ev->ev_lock); 
+		
+		BUG_ON(!n);
+		ssd_alloc_and_write(client->g, n);
+		n->type = SSD;
+
+		spin_lock(&ssd_ev->ev_lock); 
+		list_add_tail(&n->entry_list, &ssd_ev->head); 
+		spin_unlock(&ssd_ev->ev_lock); 
+
+	}
+
+	atomic_add(num_of_pages, &client->mem_used);
+	atomic_add(num_of_pages, &client->g->mem_used);
+	atomic_add(num_of_pages, &pool->mem_used);
+	
+	atomic_sub(num_of_pages, &client->ssd_used); 
+	atomic_sub(num_of_pages, &client->g->ssd_used);
+	atomic_sub(num_of_pages, &pool->ssd_used);
+	
+	ret = 0;
+	return ret;
+}
+
 static struct tmem_hostops utmem_hostops = {
         .obj_alloc = utmem_obj_alloc,
         .obj_free = utmem_obj_free,
