@@ -72,46 +72,6 @@ struct tmem_hashbucket {
 	spinlock_t lock;
 };
 
-/*
- * A pool struct to keep track of individual pools per client 
- */
-struct tmem_pool {
-	struct list_head pool_list;
-	uint32_t pool_id;
-	
-	bool persistent;
-	bool shared;
-        //bool ssd;
-        
-	int mem_weight;
-	int ssd_weight;
-        
-        unsigned mem_entitlement; 
-        unsigned ssd_entitlement; 
-        
-	struct kobject *pool_kobj;
- 
-	atomic_t obj_count;
-	atomic_t refcount;
-        atomic_t mem_used;
-        atomic_t ssd_used;
-        atomic_t evicting;
-
-        unsigned succ_puts;
-        unsigned succ_gets;
-        unsigned total_gets;
-        unsigned succ_flushes;
-        unsigned evicts;
-	
-	/* "up" for some clients, avoids table lookup */
-	void *client;	
-
-        void *mem_eviction_info;
-        void *ssd_eviction_info;
-	
-	struct tmem_hashbucket hashbucket[TMEM_HASH_BUCKETS];
-	DECL_SENTINEL
-};
 
 #define is_persistent(_p)  (_p->persistent)
 #define is_ephemeral(_p)   (!(_p->persistent))
@@ -186,6 +146,50 @@ struct tmem_obj {
 	unsigned long objnode_count;
 	long pampd_count;
 	void *extra; /* for private use by pampd implementation */
+	DECL_SENTINEL
+};
+
+
+/*
+ * A pool struct to keep track of individual pools per client 
+ */
+struct tmem_pool {
+	struct list_head pool_list;
+	uint32_t pool_id;
+	
+	bool persistent;
+	bool shared;
+        //bool ssd;
+        
+	int mem_weight;
+	int ssd_weight;
+        
+        unsigned mem_entitlement; 
+        unsigned ssd_entitlement; 
+        
+	struct kobject *pool_kobj;
+ 
+	atomic_t obj_count;
+	atomic_t refcount;
+        atomic_t mem_used;
+        atomic_t ssd_used;
+        atomic_t evicting;
+
+        unsigned succ_puts;
+        unsigned succ_gets;
+        unsigned total_gets;
+        unsigned succ_flushes;
+        unsigned evicts;
+	unsigned move_mem_to_ssd;
+	unsigned move_ssd_to_mem;
+	
+	/* "up" for some clients, avoids table lookup */
+	void *client;	
+
+        void *mem_eviction_info;
+        void *ssd_eviction_info;
+	
+	struct tmem_hashbucket hashbucket[TMEM_HASH_BUCKETS];
 	DECL_SENTINEL
 };
 

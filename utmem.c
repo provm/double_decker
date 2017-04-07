@@ -1,7 +1,15 @@
 #include<linux/spinlock.h>
 #include "utmem.h"
 #include "tmem.h"
-#define EVICT_BATCH 4096
+#define EVICT_BATCH 256*16
+#define THRES 256
+
+#define MEM_MOVE_LT 256*500 
+#define MEM_MOVE_HT 256*16  
+#define MEM_MOVE_BATCH 256*16  // 1 MB
+
+#define SSD_MOVE_HT 256*1024
+#define SSD_MOVE_BATCH 256*1
 
 #define MAX(a,b) (a) > (b) ? (a) : (b)
 
@@ -505,7 +513,10 @@ static ssize_t pool_stats_show(struct kobject *kobj, struct kobj_attribute *attr
         if(!pool)
                return -EINVAL;
 
-        return sprintf(buf, "gets:%u sgets:%u puts:%u flushes:%u evicts:%u\n", pool->total_gets, pool->succ_gets, pool->succ_puts, pool->succ_flushes,pool->evicts);
+        return sprintf(buf, "gets:%u sgets:%u puts:%u flushes:%u evicts:%u\n mem_to_ssd:%u, ssd_to_mem%u\n", 
+				pool->total_gets, pool->succ_gets, pool->succ_puts, 
+				pool->succ_flushes,pool->evicts,
+				pool->move_mem_to_ssd, pool->move_ssd_to_mem);
 }
 static struct kobj_attribute pool_stats_attribute = __ATTR(stats,0444,pool_stats_show,NULL);
 
@@ -522,41 +533,48 @@ static struct attribute_group pool_attr_group = {
         .attrs = pool_attrs,
 };
 
+int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages);
+int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages);
 
 static int evict_from_pool(struct tmem_pool *pool, int num, bool ssd)
 {
-   int flushed = 0, ret;
+	int flushed = 0, ret = 0;
+	
+	if(!ssd &&
+		atomic_read(&pool->mem_used) > (pool->mem_entitlement - MEM_MOVE_BATCH) &&
+		(pool->ssd_entitlement - atomic_read(&pool->ssd_used)) >= MEM_MOVE_BATCH){
 
-   /* TODO: Eviction to be changed */
-   struct eviction_info *ev = pool->ssd_eviction_info;
-   atomic_t *used = ssd ? &pool->ssd_used : &pool->mem_used;
+		ret = tcache_move_mem_to_ssd(pool, MEM_MOVE_BATCH);	
+	}
 
-   utmemassert(ev);
+	if(!ret){
+	
+		struct eviction_info *ev = ssd ? pool->ssd_eviction_info : pool->mem_eviction_info;
+		atomic_t *used = ssd ? &pool->ssd_used : &pool->mem_used;
 
-	while(flushed < num && atomic_read(used)){
-        	utmem_pampd *entry;
-        	//local_irq_save(flags);
-        	if (atomic_read(&pool->obj_count) > 0){
+		utmemassert(ev);
+
+		while(flushed < num && atomic_read(used)){
+        		utmem_pampd *entry;
+        		//local_irq_save(flags);
+        		if (atomic_read(&pool->obj_count) > 0){
       
-			spin_lock(&ev->ev_lock);
-			entry = list_first_entry(&ev->head, struct utmem_pampd, entry_list);
-			spin_unlock(&ev->ev_lock);
+				spin_lock(&ev->ev_lock);
+				entry = list_first_entry(&ev->head, struct utmem_pampd, entry_list);
+				spin_unlock(&ev->ev_lock);
 
-			BUG_ON(!entry); 
-			pool->evicts++;
-			ret = tmem_flush_page(pool, &entry->tmem_obj->oid, entry->index);
+				BUG_ON(!entry); 
+				pool->evicts++;
+				ret = tmem_flush_page(pool, &entry->tmem_obj->oid, entry->index);
+			}
 			
 			if(!ret)
                             ++flushed; 
-        }
-      //  local_irq_restore(flags);
+        	}
+      		//local_irq_restore(flags);
   	}
 
-  	if(ssd){
-  		printk("Flush occured SSD: %d",flushed);
-  	}
-   
-  	return flushed;     
+  	return flushed;   
 }
 
 
@@ -866,9 +884,9 @@ static int evict_memory_from_client(struct tmem_client *client)
          
 	 unsigned used;
          pool = client->pools[i];
-	 /* TODO: Change */
-         used = atomic_read(&pool->ssd_used);
+         used = atomic_read(&pool->mem_used);
 
+	 // pool no longer has entitlement but still has pages left
          if(!pool->mem_entitlement && used)
                goto got_pool;
          else if(!pool->mem_entitlement)
@@ -924,7 +942,7 @@ static int utmem_evict_memory(struct global_info *g)
        client = &g->tmem_clients[i];
        used = atomic_read(&client->mem_used);
 
-/*This client should not be using any memory*/
+       /*This client should not be using any memory*/
        if(!client->mem_entitlement && used)
                 goto got_client;     
        else if(!client->mem_entitlement)
@@ -1070,8 +1088,6 @@ got_client:
    
 }
 
-#define THRESH 128
-
 /*
  *	Tmem put entry point
  */
@@ -1088,45 +1104,26 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
         if (unlikely(pool == NULL))
                 goto out;
         WARN_ON(client != pool->client);
-
-	/*
-		TODO: eviction
-
-        entitlement = pool->ssd ? pool->ssd_entitlement : pool->mem_entitlement;
-       
-        if(!entitlement)
-                goto out;        
-
 	
-		Work-conserving nature of the tmem-backend that triggers eviction
-		only on reaching system limits
-	
-        if(client->g->mem_limit - THRESH < atomic_read(&client->g->mem_used)){
+        if(client->g->mem_limit - MEM_MOVE_BATCH < atomic_read(&client->g->mem_used)){
              if(atomic_inc_and_test(&client->g->evicting)){
                        utmem_evict_memory(client->g);
              }
              atomic_dec(&client->g->evicting);
         }
        
-       if(pool->ssd && client->g->ssd_limit - THRESH < atomic_read(&client->g->ssd_used)){
+       if(client->g->ssd_limit - SSD_MOVE_HT < atomic_read(&client->g->ssd_used)){
                utmem_evict_ssd(client->g);
                goto out;
        }
-#if 0
-        if(client_overflow(client) == 0)
-             goto out;
-        if(pool_overflow(pool) == 0)
-            goto out;  
-#endif
-	*/
 
 	// local_irq_save(flags);
 
-	if(pool->mem_entitlement>atomic_read(&pool->mem_used)){
+	if(pool->mem_entitlement){
         	ret = tmem_put(pool, oidp, index, (char *)(page),
                                 PAGE_SIZE, 0, is_ephemeral(pool), MEMORY);
 	}
-	else if(pool->ssd_entitlement>atomic_read(&pool->ssd_used)){
+	else if(pool->ssd_entitlement){
         	ret = tmem_put(pool, oidp, index, (char *)(page),
                                 PAGE_SIZE, 0, is_ephemeral(pool), SSD);
 	}
@@ -1231,27 +1228,6 @@ static int utmem_cg_destroy_pool(struct tmem_client *client)
 static struct page* get_mpage(struct kvm *kvm, unsigned long gmfn)
 {
 	return gfn_to_page(kvm, gmfn);
-}
-
-/*
-*	Move from memory to ssd	
-*/
-int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages);
-
-int utmem_move_mem_to_ssd(struct tmem_client *client, int pool_id, int num_of_pages){
-
-	int ret = -1;
-	struct tmem_pool *pool;
-	
-	pool = client->pools[pool_id];
-	if(unlikely(pool == NULL))
-		goto out;
-	WARN_ON(client != pool->client);
-			
-	ret = tcache_move_mem_to_ssd(pool, num_of_pages);
-
-out:
-	return ret;
 }
 
 

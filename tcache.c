@@ -629,19 +629,24 @@ static void utmem_obj_free(struct tmem_obj *obj, struct tmem_pool *pool)
 
 int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 {
-	int i, ret = -1;
+	int i;
 	utmem_pampd *n = NULL; 	
 	struct tmem_client *client = pool->client;
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
 	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
 	
+	printk("Moving objects from mem to ssd \n");
 	for(i=0; i<num_of_pages; i++){
 
 		spin_lock(&mem_ev->ev_lock); 
 		n = list_first_entry(&mem_ev->head, struct utmem_pampd, entry_list);
+		list_del(&n->entry_list); 	
 		spin_unlock(&mem_ev->ev_lock); 
 		
-		BUG_ON(!n);
+		if(!n)
+			 goto wakeup_and_failed;		
+		
+		printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
 		ssd_alloc_and_write(client->g, n);
 		n->type = SSD;
 
@@ -651,17 +656,72 @@ int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 
 	}
 
-	atomic_add(num_of_pages, &client->mem_used);
-	atomic_add(num_of_pages, &client->g->mem_used);
-	atomic_add(num_of_pages, &pool->mem_used);
+wakeup_and_failed:
 	
-	atomic_sub(num_of_pages, &client->ssd_used); 
-	atomic_sub(num_of_pages, &client->g->ssd_used);
-	atomic_sub(num_of_pages, &pool->ssd_used);
+	atomic_sub(i, &client->mem_used);
+	atomic_sub(i, &client->g->mem_used);
+	atomic_sub(i, &pool->mem_used);
 	
-	ret = 0;
+	atomic_add(i, &client->ssd_used); 
+	atomic_add(i, &client->g->ssd_used);
+	atomic_add(i, &pool->ssd_used);
+
+	pool->move_mem_to_ssd += i;
+	
+	return i;
+}
+
+/*
+	Check overflow conditions and make it ASYNC
+*/
+int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
+{
+	int i, ret = -1;
+	void *page;
+	utmem_pampd *n = NULL; 	
+	struct tmem_client *client = pool->client;
+	struct eviction_info *mem_ev = pool->mem_eviction_info;
+	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
+	
+	printk("Moving objects from ssd to mem \n");
+	for(i=0; i<num_of_pages; i++){
+
+		spin_lock(&ssd_ev->ev_lock); 
+		n = list_first_entry(&ssd_ev->head, struct utmem_pampd, entry_list);
+		list_del(&n->entry_list); 	
+		spin_unlock(&ssd_ev->ev_lock); 
+		
+		if(!n)
+			goto wakeup_and_failed;
+		
+		page = (void *)__get_free_page(UTMEM_GFP_MASK);
+   		if(!page)
+        		goto wakeup_and_failed;
+		
+		ret = read_and_free_from_ssd(client->g, page, n);
+		n->type = MEMORY;
+		n->page = (unsigned long) page;
+
+		spin_lock(&mem_ev->ev_lock); 
+		list_add_tail(&n->entry_list, &mem_ev->head); 
+		spin_unlock(&mem_ev->ev_lock); 
+
+	}
+
+wakeup_and_failed:
+
+	atomic_sub(i, &client->ssd_used); 
+	atomic_sub(i, &client->g->ssd_used);
+	atomic_sub(i, &pool->ssd_used);
+	
+	atomic_add(i, &client->mem_used);
+	atomic_add(i, &client->g->mem_used);
+	atomic_add(i, &pool->mem_used);
+
+	ret = i;
 	return ret;
 }
+
 
 static struct tmem_hostops utmem_hostops = {
         .obj_alloc = utmem_obj_alloc,
