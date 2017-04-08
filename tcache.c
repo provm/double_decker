@@ -277,7 +277,8 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 
        if(uptodate)
            return 0;
-       return -EIO;
+       
+	return -EIO;
 } 
 
 
@@ -635,7 +636,7 @@ int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
 	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
 	
-	printk("Moving objects from mem to ssd \n");
+	//printk("Moving objects from mem to ssd \n");
 	for(i=0; i<num_of_pages; i++){
 
 		spin_lock(&mem_ev->ev_lock); 
@@ -646,7 +647,7 @@ int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 		if(!n)
 			 goto wakeup_and_failed;		
 		
-		printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
+		//printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
 		ssd_alloc_and_write(client->g, n);
 		n->type = SSD;
 
@@ -676,7 +677,7 @@ wakeup_and_failed:
 */
 int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 {
-	int i, ret = -1;
+	int i, ret=-1;
 	void *page;
 	utmem_pampd *n = NULL; 	
 	struct tmem_client *client = pool->client;
@@ -694,11 +695,14 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		if(!n)
 			goto wakeup_and_failed;
 		
+		printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
 		page = (void *)__get_free_page(UTMEM_GFP_MASK);
    		if(!page)
         		goto wakeup_and_failed;
 		
 		ret = read_and_free_from_ssd(client->g, page, n);
+		BUG_ON(ret);
+
 		n->type = MEMORY;
 		n->page = (unsigned long) page;
 
@@ -718,8 +722,8 @@ wakeup_and_failed:
 	atomic_add(i, &client->g->mem_used);
 	atomic_add(i, &pool->mem_used);
 
-	ret = i;
-	return ret;
+	pool->move_mem_to_ssd += i;
+	return i;
 }
 
 

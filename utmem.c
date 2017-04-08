@@ -4,12 +4,12 @@
 #define EVICT_BATCH 256*16
 #define THRES 256
 
-#define MEM_MOVE_LT 256*500 
+#define MEM_MOVE_LT 256*64 
 #define MEM_MOVE_HT 256*16  
 #define MEM_MOVE_BATCH 256*16  // 1 MB
 
-#define SSD_MOVE_HT 256*1024
-#define SSD_MOVE_BATCH 256*1
+#define SSD_MOVE_HT 256*16
+#define SSD_MOVE_BATCH 256*16
 
 #define MAX(a,b) (a) > (b) ? (a) : (b)
 
@@ -513,7 +513,7 @@ static ssize_t pool_stats_show(struct kobject *kobj, struct kobj_attribute *attr
         if(!pool)
                return -EINVAL;
 
-        return sprintf(buf, "gets:%u sgets:%u puts:%u flushes:%u evicts:%u\n mem_to_ssd:%u, ssd_to_mem%u\n", 
+        return sprintf(buf, "gets:%u sgets:%u puts:%u flushes:%u evicts:%u\nmem_to_ssd:%u, ssd_to_mem:%u\n", 
 				pool->total_gets, pool->succ_gets, pool->succ_puts, 
 				pool->succ_flushes,pool->evicts,
 				pool->move_mem_to_ssd, pool->move_ssd_to_mem);
@@ -1134,6 +1134,91 @@ out:
         return ret;
 
 }
+
+static int client_memory_underuse(struct tmem_client *client)
+{
+	return client->mem_entitlement - (atomic_read(&client->mem_used) + EVICT_BATCH);
+}
+
+static struct tmem_client *pick_underutilized_client(struct global_info *g){
+
+	struct tmem_client *cls[MAX_VMS];
+	struct tmem_client *client;
+	int i, count=0, current_max_underuse=0, new_underuse;
+
+	for(i=0; i<MAX_VMS && g->tmem_clients[i].id >= 0; ++i){
+		unsigned used;
+		client = &g->tmem_clients[i];
+		used = atomic_read(&client->mem_used);
+
+		if(client->mem_entitlement && atomic_read(&client->ssd_used)){  
+		     cls[count++] = client;  
+		}
+	}
+
+	
+	if(!count)
+		return NULL;
+
+	client = cls[0];    
+
+	if(count > 1)
+		current_max_underuse = client_memory_underuse(client);
+
+	for(i=1; i<count; ++i){
+	 	new_underuse = client_memory_underuse(cls[i]);
+
+		if(new_underuse > current_max_underuse){
+	     		client = cls[i];     
+	 	}
+	}
+
+	printk("targetted client is: %d\n", client->id);
+	return client;  
+}
+
+static int pool_memory_underuse(struct tmem_pool *pool)
+{
+	return pool->mem_entitlement - (atomic_read(&pool->mem_used) + EVICT_BATCH);
+}
+
+static struct tmem_pool *pick_underutilized_pool(struct tmem_client *client){
+	
+	struct tmem_pool *pools[MAX_POOLS_PER_CLIENT];     
+	struct tmem_pool *pool;
+	int i, current_max_underuse=0, new_underuse, count=0;
+
+	for(i=0; i<MAX_POOLS_PER_CLIENT && client->pools[i]; ++i){
+	 
+		unsigned used;
+		pool = client->pools[i];
+		used = atomic_read(&pool->mem_used);
+
+		if(pool->mem_entitlement && atomic_read(&pool->ssd_used)){  
+			pools[count++] = pool;   		
+		}
+	}
+
+	if(!count)
+		return NULL;
+
+	pool = pools[0];    
+
+	if(count > 1)
+		current_max_underuse = pool_memory_underuse(pool);
+
+	for(i=1; i < count; ++i){
+		new_underuse = pool_memory_underuse(pools[i]);
+	 
+		if(new_underuse > current_max_underuse){
+	     		pool = pools[i];     
+	 	}
+	}
+
+	printk("targetted pool is: %d\n", pool->pool_id);
+	return pool; 
+}
+
 static int utmem_get_page(struct tmem_client *client, int pool_id, struct tmem_oid *oidp, uint32_t index, struct page *page)
 {
         struct tmem_pool *pool;
@@ -1154,8 +1239,27 @@ static int utmem_get_page(struct tmem_client *client, int pool_id, struct tmem_o
                                         &size, 0, is_ephemeral(pool));
 //        local_irq_restore(flags);
 out:
-       if(!ret)
-            pool->succ_gets++;
+       	if(!ret)
+	{
+            	pool->succ_gets++;
+
+		if(unlikely(
+			atomic_read(&client->g->mem_used) + MEM_MOVE_LT < client->g->mem_limit &&
+			atomic_read(&client->g->ssd_used) >= MEM_MOVE_BATCH
+		)){
+			printk("moving to ssd\n");
+			client = pick_underutilized_client(client->g);
+
+			if(client){
+				pool = pick_underutilized_pool(client);
+
+				if(pool)
+					tcache_move_ssd_to_mem(pool, MEM_MOVE_BATCH);
+			}
+		}
+	}
+
+
         return ret;
 
 }
