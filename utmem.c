@@ -1243,11 +1243,11 @@ out:
 	{
             	pool->succ_gets++;
 
-		if(unlikely(
+		if(
 			atomic_read(&client->g->mem_used) + MEM_MOVE_LT < client->g->mem_limit &&
 			atomic_read(&client->g->ssd_used) >= MEM_MOVE_BATCH
-		)){
-			printk("moving to ssd\n");
+		){
+			printk("TRYING\n");
 			client = pick_underutilized_client(client->g);
 
 			if(client){

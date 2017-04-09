@@ -636,20 +636,23 @@ int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
 	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
 	
-	//printk("Moving objects from mem to ssd \n");
+	printk("Moving objects from mem to ssd \n");
 	for(i=0; i<num_of_pages; i++){
 
 		spin_lock(&mem_ev->ev_lock); 
 		n = list_first_entry(&mem_ev->head, struct utmem_pampd, entry_list);
-		list_del(&n->entry_list); 	
+		
+		if(unlikely(!n)){				
+			spin_unlock(&mem_ev->ev_lock); 
+			goto wakeup_and_failed;
+		}
+	 	
+		list_del(&n->entry_list);
 		spin_unlock(&mem_ev->ev_lock); 
 		
-		if(!n)
-			 goto wakeup_and_failed;		
-		
 		//printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
-		ssd_alloc_and_write(client->g, n);
 		n->type = SSD;
+		ssd_alloc_and_write(client->g, n);
 
 		spin_lock(&ssd_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &ssd_ev->head); 
@@ -689,17 +692,28 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 
 		spin_lock(&ssd_ev->ev_lock); 
 		n = list_first_entry(&ssd_ev->head, struct utmem_pampd, entry_list);
+
+		if(unlikely(n->status = IO_IN_PROGRESS)){
+			spin_unlock(&ssd_ev->ev_lock); 
+			continue;
+		}
+		else if(unlikely(!n)){				
+			spin_unlock(&ssd_ev->ev_lock); 
+			goto wakeup_and_failed;
+		}	
+		
 		list_del(&n->entry_list); 	
 		spin_unlock(&ssd_ev->ev_lock); 
 		
-		if(!n)
-			goto wakeup_and_failed;
-		
 		printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
 		page = (void *)__get_free_page(UTMEM_GFP_MASK);
-   		if(!page)
-        		goto wakeup_and_failed;
-		
+   		if(!page){	
+			spin_lock(&ssd_ev->ev_lock); 
+			list_add(&n->entry_list, &ssd_ev->head); 
+			spin_unlock(&ssd_ev->ev_lock); 
+			goto wakeup_and_failed;
+		}
+	
 		ret = read_and_free_from_ssd(client->g, page, n);
 		BUG_ON(ret);
 
