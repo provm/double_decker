@@ -252,7 +252,7 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 		TODO: IO on the way, Is there a better way
            	to handle this? 
         */
-	printk("Waiting for UPDATE IN SSD\n"); 
+	//printk("Waiting for UPDATE IN SSD\n"); 
 	asm volatile(
                      "pause"
          );
@@ -736,7 +736,7 @@ wakeup_and_failed:
 	atomic_add(i, &client->g->mem_used);
 	atomic_add(i, &pool->mem_used);
 
-	pool->move_mem_to_ssd += i;
+	pool->move_ssd_to_mem += i;
 	return i;
 }
 
