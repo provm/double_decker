@@ -89,6 +89,7 @@ struct tmem_client{
         atomic_t evicting;
         atomic_t ssd_used;
         atomic_t mem_used;
+	atomic_t ssd_uptodate;
 };
 
 

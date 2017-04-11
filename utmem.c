@@ -1151,7 +1151,7 @@ static struct tmem_client *pick_underutilized_client(struct global_info *g){
 		client = &g->tmem_clients[i];
 		used = atomic_read(&client->mem_used);
 
-		if(client->mem_entitlement && atomic_read(&client->ssd_used)){  
+		if(client->mem_entitlement && atomic_read(&client->ssd_uptodate) > EVICT_BATCH){  
 		     cls[count++] = client;  
 		}
 	}
@@ -1173,7 +1173,7 @@ static struct tmem_client *pick_underutilized_client(struct global_info *g){
 	 	}
 	}
 
-	printk("targetted client is: %d\n", client->id);
+	//printk("targetted client is: %d\n", client->id);
 	return client;  
 }
 
@@ -1194,7 +1194,7 @@ static struct tmem_pool *pick_underutilized_pool(struct tmem_client *client){
 		pool = client->pools[i];
 		used = atomic_read(&pool->mem_used);
 
-		if(pool->mem_entitlement && atomic_read(&pool->ssd_used)){  
+		if(pool->mem_entitlement && atomic_read(&pool->ssd_uptodate) > EVICT_BATCH){  
 			pools[count++] = pool;   		
 		}
 	}
@@ -1215,7 +1215,7 @@ static struct tmem_pool *pick_underutilized_pool(struct tmem_client *client){
 	 	}
 	}
 
-	printk("targetted pool is: %d\n", pool->pool_id);
+	printk("targetted client:%d, pool: %d\n", pool->pool_id, client->id);
 	return pool; 
 }
 
@@ -1242,12 +1242,13 @@ out:
        	if(!ret)
 	{
             	pool->succ_gets++;
+		atomic_dec(&pool->ssd_uptodate);
+		atomic_dec(&pool->client->ssd_uptodate);
 
 		if(
 			atomic_read(&client->g->mem_used) + MEM_MOVE_LT < client->g->mem_limit &&
 			atomic_read(&client->g->ssd_used) >= MEM_MOVE_BATCH
 		){
-			printk("TRYING\n");
 			client = pick_underutilized_client(client->g);
 
 			if(client){

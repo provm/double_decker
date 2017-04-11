@@ -118,6 +118,9 @@ void end_ssd_bio_write(struct bio *bio, int err)
 //        n->page = bio->bi_iter.bi_sector >> (PAGE_SHIFT - 9);
 //        wmb();
         n->status = UPTODATE;
+	atomic_inc(&n->tmem_obj->pool->ssd_uptodate); 
+	atomic_inc(&n->tmem_obj->pool->client->ssd_uptodate); 
+	
 	bio_put(bio);
 }
 
@@ -238,46 +241,61 @@ static int ssd_alloc_and_write(struct global_info *g, utmem_pampd *n)
 
 static int read_and_free_from_ssd(struct global_info *g, struct page *page, utmem_pampd *n)
 {
-       struct bio *bio;
-       int uptodate;
- 
-       //printk("read_and_free_from_ssd-1\n");
-       BUG_ON(!page);
+	struct bio *bio;
+	int uptodate;
+	bool checker = false;
 
-       //printk("read_and_free_from_ssd-2\n");
-      
+	BUG_ON(!page);
 
-       while(n->status != UPTODATE){
-         /*
+	if(unlikely(n->status) != UPTODATE){
+		printk("1: ------WAITING UPDATE IN SSD----- \n"); 
+		checker = true;	
+	}
+
+
+
+	while(n->status != UPTODATE){
+	 /*
 		TODO: IO on the way, Is there a better way
-           	to handle this? 
-        */
-	//printk("Waiting for UPDATE IN SSD\n"); 
-	asm volatile(
-                     "pause"
-         );
-	 
-       }
+		to handle this? 
+	*/
+		asm volatile(
+		     "pause"
+		 );
+	}
 
-      
-       //printk("read_and_free_from_ssd-3\n");
+	if(unlikely(checker)){	
+		printk("2: update done\n"); 
+	}
 
-       lock_page(page);
-       bio = get_ssd_bio(GFP_KERNEL, page, end_ssd_bio_read, n);  
-       BUG_ON(!bio);
-       
-       bio->bi_iter.bi_sector = (n->page) << (PAGE_SHIFT - 9);
-       bio->bi_bdev = g->bdev;
-       submit_bio(READ_SYNC, bio);
-       wait_on_page_locked(page); 
-      
-       uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
-       bio_put(bio);
-       mark_free(g, n->page);
+	lock_page(page);
+	bio = get_ssd_bio(GFP_KERNEL, page, end_ssd_bio_read, n);  
+	BUG_ON(!bio);
 
-       if(uptodate)
-           return 0;
-       
+	bio->bi_iter.bi_sector = (n->page) << (PAGE_SHIFT - 9);
+	bio->bi_bdev = g->bdev;
+	submit_bio(READ_SYNC, bio);
+
+	if(unlikely(checker)){	
+		printk("3: waiting on page done\n"); 
+	}
+	wait_on_page_locked(page); 
+
+	if(unlikely(checker)){	
+		printk("4: page lock done\n"); 
+	}
+
+	uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
+	bio_put(bio);
+	mark_free(g, n->page);
+	
+	if(unlikely(checker)){	
+		printk("5: ------- READ DONE ------------\n"); 
+	}
+
+	if(uptodate)
+	   return 0;
+
 	return -EIO;
 } 
 
@@ -693,7 +711,7 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		spin_lock(&ssd_ev->ev_lock); 
 		n = list_first_entry(&ssd_ev->head, struct utmem_pampd, entry_list);
 
-		if(unlikely(n->status = IO_IN_PROGRESS)){
+		if(unlikely(n->status == IO_IN_PROGRESS)){
 			spin_unlock(&ssd_ev->ev_lock); 
 			continue;
 		}
