@@ -248,11 +248,9 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 	BUG_ON(!page);
 
 	if(unlikely(n->status) != UPTODATE){
-		printk("1: ------WAITING UPDATE IN SSD----- \n"); 
+		printk("------WAITING UPDATE IN SSD----- \n"); 
 		checker = true;	
 	}
-
-
 
 	while(n->status != UPTODATE){
 	 /*
@@ -264,10 +262,6 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 		 );
 	}
 
-	if(unlikely(checker)){	
-		printk("2: update done\n"); 
-	}
-
 	lock_page(page);
 	bio = get_ssd_bio(GFP_KERNEL, page, end_ssd_bio_read, n);  
 	BUG_ON(!bio);
@@ -276,23 +270,12 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 	bio->bi_bdev = g->bdev;
 	submit_bio(READ_SYNC, bio);
 
-	if(unlikely(checker)){	
-		printk("3: waiting on page done\n"); 
-	}
 	wait_on_page_locked(page); 
-
-	if(unlikely(checker)){	
-		printk("4: page lock done\n"); 
-	}
 
 	uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
 	bio_put(bio);
 	mark_free(g, n->page);
 	
-	if(unlikely(checker)){	
-		printk("5: ------- READ DONE ------------\n"); 
-	}
-
 	if(uptodate)
 	   return 0;
 
@@ -654,7 +637,6 @@ int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
 	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
 	
-	printk("Moving objects from mem to ssd \n");
 	for(i=0; i<num_of_pages; i++){
 
 		spin_lock(&mem_ev->ev_lock); 
@@ -689,66 +671,82 @@ wakeup_and_failed:
 	atomic_add(i, &pool->ssd_used);
 
 	pool->move_mem_to_ssd += i;
+	printk("Moved from mem to ssd: %d \n", i);
 	
 	return i;
 }
 
-/*
-	Check overflow conditions and make it ASYNC
-*/
 int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 {
-	int i, ret=-1;
-	void *page;
+	int i=0, ret=-1;
+	struct page *page;
 	utmem_pampd *n = NULL; 	
 	struct tmem_client *client = pool->client;
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
 	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
 	
-	printk("Moving objects from ssd to mem \n");
+	//printk("Moving objects from ssd to mem \n");
+	
 	for(i=0; i<num_of_pages; i++){
-
+	
+		//printk("1");	
 		spin_lock(&ssd_ev->ev_lock); 
 		n = list_first_entry(&ssd_ev->head, struct utmem_pampd, entry_list);
 
-		if(unlikely(n->status == IO_IN_PROGRESS)){
-			spin_unlock(&ssd_ev->ev_lock); 
-			continue;
-		}
-		else if(unlikely(!n)){				
+		//printk("-2");	
+		if(unlikely(!n)){				
+			//printk("EXIT-A\n");	
 			spin_unlock(&ssd_ev->ev_lock); 
 			goto wakeup_and_failed;
 		}	
+		else if(unlikely(n->status == IO_IN_PROGRESS)){
+			//printk("EXIT-B\n");	
+			spin_unlock(&ssd_ev->ev_lock); 
+			continue;
+		}
 		
+		//printk("-3");	
 		list_del(&n->entry_list); 	
 		spin_unlock(&ssd_ev->ev_lock); 
 		
+		//printk("-4\n");	
 		printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
-		page = (void *)__get_free_page(UTMEM_GFP_MASK);
-   		if(!page){	
+		
+		//page = (struct page *)__get_free_page(UTMEM_GFP_MASK);
+		page = alloc_page(UTMEM_GFP_MASK);
+   		
+		if(!page){	
 			spin_lock(&ssd_ev->ev_lock); 
 			list_add(&n->entry_list, &ssd_ev->head); 
 			spin_unlock(&ssd_ev->ev_lock); 
 			goto wakeup_and_failed;
 		}
-	
+		
+		//printk("5");	
 		ret = read_and_free_from_ssd(client->g, page, n);
 		BUG_ON(ret);
 
+		//printk("-6");	
+		
 		n->type = MEMORY;
 		n->page = (unsigned long) page;
 
 		spin_lock(&mem_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &mem_ev->head); 
 		spin_unlock(&mem_ev->ev_lock); 
-
+		//printk("-7\n");	
 	}
+	
+	//printk("EXIT-CORRECT\n");	
 
 wakeup_and_failed:
 
 	atomic_sub(i, &client->ssd_used); 
 	atomic_sub(i, &client->g->ssd_used);
 	atomic_sub(i, &pool->ssd_used);
+	
+	atomic_sub(i, &pool->ssd_uptodate);
+	atomic_sub(i, &pool->client->ssd_uptodate);
 	
 	atomic_add(i, &client->mem_used);
 	atomic_add(i, &client->g->mem_used);

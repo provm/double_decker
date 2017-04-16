@@ -18,9 +18,11 @@ static const struct modversion_info ____versions[]
 __used
 __attribute__((section("__versions"))) = {
 	{ 0x3e2842d7, __VMLINUX_SYMBOL_STR(module_layout) },
+	{ 0xc1800c61, __VMLINUX_SYMBOL_STR(alloc_pages_current) },
 	{ 0xec795900, __VMLINUX_SYMBOL_STR(kmem_cache_destroy) },
 	{ 0x2244ef90, __VMLINUX_SYMBOL_STR(fs_bio_set) },
 	{ 0x342ddc45, __VMLINUX_SYMBOL_STR(kmalloc_caches) },
+	{ 0xf9a482f9, __VMLINUX_SYMBOL_STR(msleep) },
 	{ 0x30bef6d8, __VMLINUX_SYMBOL_STR(bio_alloc_bioset) },
 	{ 0xda3e43d1, __VMLINUX_SYMBOL_STR(_raw_spin_unlock) },
 	{ 0x5c8795c3, __VMLINUX_SYMBOL_STR(kvm_release_page_dirty) },
@@ -32,6 +34,7 @@ __attribute__((section("__versions"))) = {
 	{ 0x4629334c, __VMLINUX_SYMBOL_STR(__preempt_count) },
 	{ 0x91715312, __VMLINUX_SYMBOL_STR(sprintf) },
 	{ 0x76ce14fb, __VMLINUX_SYMBOL_STR(sysfs_remove_group) },
+	{ 0x7f008161, __VMLINUX_SYMBOL_STR(kthread_create_on_node) },
 	{ 0xe754075f, __VMLINUX_SYMBOL_STR(kobject_create_and_add) },
 	{ 0xde9360ba, __VMLINUX_SYMBOL_STR(totalram_pages) },
 	{ 0xd1260bbd, __VMLINUX_SYMBOL_STR(kvm_release_page_clean) },
@@ -40,6 +43,7 @@ __attribute__((section("__versions"))) = {
 	{ 0xfb578fc5, __VMLINUX_SYMBOL_STR(memset) },
 	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
 	{ 0xe15f42bb, __VMLINUX_SYMBOL_STR(_raw_spin_trylock) },
+	{ 0xabb0be8f, __VMLINUX_SYMBOL_STR(kthread_stop) },
 	{ 0x3c3fce39, __VMLINUX_SYMBOL_STR(__local_bh_enable_ip) },
 	{ 0xcbffb12d, __VMLINUX_SYMBOL_STR(sysfs_create_group) },
 	{ 0x4c9d28b0, __VMLINUX_SYMBOL_STR(phys_base) },
@@ -60,12 +64,14 @@ __attribute__((section("__versions"))) = {
 	{ 0x93fca811, __VMLINUX_SYMBOL_STR(__get_free_pages) },
 	{ 0xdb7305a1, __VMLINUX_SYMBOL_STR(__stack_chk_fail) },
 	{ 0x63db7751, __VMLINUX_SYMBOL_STR(pv_cpu_ops) },
+	{ 0xbc4817b9, __VMLINUX_SYMBOL_STR(wake_up_process) },
 	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
 	{ 0xc56dd881, __VMLINUX_SYMBOL_STR(kmem_cache_alloc_trace) },
 	{ 0xd52bf1ce, __VMLINUX_SYMBOL_STR(_raw_spin_lock) },
 	{ 0xa5526619, __VMLINUX_SYMBOL_STR(rb_insert_color) },
 	{ 0x21bdc1b1, __VMLINUX_SYMBOL_STR(kmem_cache_create) },
 	{ 0x4302d0eb, __VMLINUX_SYMBOL_STR(free_pages) },
+	{ 0xb3f7646e, __VMLINUX_SYMBOL_STR(kthread_should_stop) },
 	{ 0x37a0cba, __VMLINUX_SYMBOL_STR(kfree) },
 	{ 0x69ad2f20, __VMLINUX_SYMBOL_STR(kstrtouint) },
 	{ 0xe8a63b8c, __VMLINUX_SYMBOL_STR(gfn_to_page) },
@@ -79,4 +85,4 @@ __attribute__((section(".modinfo"))) =
 "depends=kvm";
 
 
-MODULE_INFO(srcversion, "A4E6F72770BBB32302D8743");
+MODULE_INFO(srcversion, "F9111CE7EC71F6EB779D977");

@@ -1,17 +1,23 @@
 #include<linux/spinlock.h>
+#include<linux/kthread.h>
+#include<linux/delay.h>
+
 #include "utmem.h"
 #include "tmem.h"
-#define EVICT_BATCH 256*16
-#define THRES 256
 
-#define MEM_MOVE_LT 256*64 
-#define MEM_MOVE_HT 256*16  
-#define MEM_MOVE_BATCH 256*16  // 1 MB
+#define EVICT_BATCH 256 // 1-MB
+// #define THRES 256
 
-#define SSD_MOVE_HT 256*16
-#define SSD_MOVE_BATCH 256*16
+#define MEM_MOVE_LT 256*100 // 100-MB
+#define MEM_MOVE_HT 256  
+#define MEM_MOVE_BATCH 256
+
+#define SSD_MOVE_HT 256
+#define SSD_MOVE_BATCH 256
 
 #define MAX(a,b) (a) > (b) ? (a) : (b)
+
+struct task_struct *kthread1, *kthread2;
 
 static struct global_info *global;
 
@@ -608,6 +614,7 @@ static int check_and_readjust_allocations(struct tmem_client *client)
    
    bool adjusted = false;
 
+   //printk("START: check_and_readjust_allocations\n");
    for (poolid = 0; poolid < MAX_POOLS_PER_CLIENT; poolid++){
  	
 	if(client->pools[poolid])
@@ -641,6 +648,7 @@ static int check_and_readjust_allocations(struct tmem_client *client)
       }
    }
 
+   //printk("STOP: check_and_readjust_allocations\n");
    return (adjusted ? 0 : -1);
 }
 
@@ -803,6 +811,8 @@ int utmem_set_pool_weight(struct tmem_client *client, int pool_id, int new_weigh
 
 	//pool->ssd = pool_type ? true : false;
 	ret = check_and_readjust_allocations(client);
+
+	//printk("changed weights successfully and readjusted client !\n");
 out:
 	return ret;
   
@@ -1161,9 +1171,7 @@ static struct tmem_client *pick_underutilized_client(struct global_info *g){
 		return NULL;
 
 	client = cls[0];    
-
-	if(count > 1)
-		current_max_underuse = client_memory_underuse(client);
+	current_max_underuse = client_memory_underuse(client);
 
 	for(i=1; i<count; ++i){
 	 	new_underuse = client_memory_underuse(cls[i]);
@@ -1203,9 +1211,7 @@ static struct tmem_pool *pick_underutilized_pool(struct tmem_client *client){
 		return NULL;
 
 	pool = pools[0];    
-
-	if(count > 1)
-		current_max_underuse = pool_memory_underuse(pool);
+	current_max_underuse = pool_memory_underuse(pool);
 
 	for(i=1; i < count; ++i){
 		new_underuse = pool_memory_underuse(pools[i]);
@@ -1215,7 +1221,7 @@ static struct tmem_pool *pick_underutilized_pool(struct tmem_client *client){
 	 	}
 	}
 
-	printk("targetted client:%d, pool: %d\n", pool->pool_id, client->id);
+	printk("targetted client:%d, pool: %d\n", client->id, pool->pool_id);
 	return pool; 
 }
 
@@ -1243,23 +1249,8 @@ out:
 	{
             	pool->succ_gets++;
 		atomic_dec(&pool->ssd_uptodate);
-		atomic_dec(&pool->client->ssd_uptodate);
-
-		if(
-			atomic_read(&client->g->mem_used) + MEM_MOVE_LT < client->g->mem_limit &&
-			atomic_read(&client->g->ssd_used) >= MEM_MOVE_BATCH
-		){
-			client = pick_underutilized_client(client->g);
-
-			if(client){
-				pool = pick_underutilized_pool(client);
-
-				if(pool)
-					tcache_move_ssd_to_mem(pool, MEM_MOVE_BATCH);
-			}
-		}
+		atomic_dec(&pool->client->ssd_uptodate);	
 	}
-
 
         return ret;
 
@@ -1412,14 +1403,15 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 			//          return -EINVAL;
 			//     page = gfn_to_page(vcpu->kvm, tmem_op->u.gen.gmfn);
 			page = get_mpage(vcpu->kvm, op->u.gen.gmfn);
+			
 			if (IS_ERR_OR_NULL(page)){
-			printk(KERN_INFO "Invalid page\n");
-			return -EINVAL;
+				printk(KERN_INFO "Invalid page\n");
+				return -EINVAL;
 			}
-			if(PageKsm(page)){
-			printk(KERN_INFO "Called on shared page\n");
-			kvm_release_page_clean(page);
-			return -EINVAL;
+			else if(PageKsm(page)){
+				printk(KERN_INFO "Called on shared page\n");
+				kvm_release_page_clean(page);
+				return -EINVAL;
 			}
 
 			WARN_ON(oidp->oid[1]);
@@ -1488,6 +1480,39 @@ int utmem_vmshutdown(struct kvm *kvm)
 	return ret;
 }
 
+int kthread_move_ssd_to_mem(void *data)
+{	
+	struct tmem_client *client;
+	struct tmem_pool *pool;
+	int ret = 0;
+	
+	printk("Kthread-2: Initialized\n");
+	
+	while(!kthread_should_stop()){
+		
+		printk("Kthread-2: START! \n");
+		if(
+			atomic_read(&global->mem_used) < (global->mem_limit - MEM_MOVE_LT) &&
+			atomic_read(&global->ssd_used) >= MEM_MOVE_BATCH
+		){
+			client = pick_underutilized_client(global);
+
+			if(client){
+				pool = pick_underutilized_pool(client);
+
+				if(pool)
+					ret = tcache_move_ssd_to_mem(pool, 256);
+			}
+		
+
+		}
+		printk("Kthread-2: STOP! Objects moved from SSD to MEM is %d\n", ret);
+		ssleep(5);
+	}
+	
+	printk("Kthread-2: Terminated\n");
+	return 0;
+}
 
 int utmem_init_module(void)
 {
@@ -1512,6 +1537,8 @@ int utmem_init_module(void)
 
 	init_utmem(global);
 
+	kthread2 = kthread_run(&kthread_move_ssd_to_mem, NULL, "cgtmem_ssd_to_mem");
+
 	printk("---------------------------------------CGTMEM INSERTED SUCESSFULLY ------------------------------------------!\n");
 
 	return 0;
@@ -1530,6 +1557,9 @@ void utmem_cleanup_module(void)
 	cleanup_utmem(global);
 
 	kfree(global);
+	kthread_stop(kthread2);
+	
+	printk("---------------------------------------CGTMEM REMOVED SUCESSFULLY ------------------------------------------!\n");
 }
 
 module_init(utmem_init_module);

@@ -1,4 +1,4 @@
-make
+#make
 sudo insmod cgtmem.ko
 sleep 1
 virsh start vm2
