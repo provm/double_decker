@@ -5,15 +5,15 @@
 #include "utmem.h"
 #include "tmem.h"
 
-#define EVICT_BATCH 256 // 1-MB
+#define EVICT_BATCH 256*32 // 32-MB
 // #define THRES 256
 
-#define MEM_MOVE_LT 256*100 // 100-MB
-#define MEM_MOVE_HT 256  
-#define MEM_MOVE_BATCH 256
+#define MEM_MOVE_LT 256*256 
+#define MEM_MOVE_HT 256*64  
+#define MEM_MOVE_BATCH 256*64
 
-#define SSD_MOVE_HT 256
-#define SSD_MOVE_BATCH 256
+#define SSD_MOVE_HT 256*64
+#define SSD_MOVE_BATCH 256*64
 
 #define MAX(a,b) (a) > (b) ? (a) : (b)
 
@@ -1501,7 +1501,7 @@ int kthread_move_ssd_to_mem(void *data)
 				pool = pick_underutilized_pool(client);
 
 				if(pool)
-					ret = tcache_move_ssd_to_mem(pool, 256);
+					ret = tcache_move_ssd_to_mem(pool, MEM_MOVE_BATCH);
 			}
 		
 

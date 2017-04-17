@@ -685,8 +685,6 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
 	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
 	
-	//printk("Moving objects from ssd to mem \n");
-	
 	for(i=0; i<num_of_pages; i++){
 	
 		//printk("1");	
@@ -710,7 +708,7 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		spin_unlock(&ssd_ev->ev_lock); 
 		
 		//printk("-4\n");	
-		printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
+		//printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
 		
 		//page = (struct page *)__get_free_page(UTMEM_GFP_MASK);
 		page = alloc_page(UTMEM_GFP_MASK);
