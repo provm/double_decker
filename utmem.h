@@ -108,7 +108,7 @@ struct global_info{
          unsigned long gets;
          unsigned long puts;
          unsigned long flushes;
-	 unsigned long mem_sgets;
+	 //unsigned long mem_sgets;
 
          struct block_device *bdev;
          unsigned ssd_bmap_size;

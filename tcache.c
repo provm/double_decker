@@ -410,17 +410,12 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
    
    tmem = (struct tmem_obj *)n->tmem_obj;
 
-
-   //printk("data_and_free-1 SSD:%d\n", n->type);
-
    if(n->type == SSD){		
 	ret = read_and_free_from_ssd(client->g, page, n);
 	atomic_dec(&client->ssd_used);
 	atomic_dec(&client->g->ssd_used);
 	atomic_dec(&pool->ssd_used);
-
 	
-       	//printk("data_and_free-2\n");
 	/* TODO: Gapa from LIFO FIFO etc.. */
 	ev = pool->ssd_eviction_info;
 	spin_lock(&ev->ev_lock); 
@@ -438,21 +433,16 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	atomic_dec(&pool->mem_used);
 	
 	
-       	//printk("data_and_free-3\n");
 	/* TODO: Gapa from LIFO FIFO etc.. */
 	ev = pool->mem_eviction_info;
 	spin_lock(&ev->ev_lock); 
 	list_del(&n->entry_list);
 	spin_unlock(&ev->ev_lock);
 	
-	client->g->mem_sgets++;
+	//client->g->mem_sgets++;
 	
 	ret = 0;
    }
-
-   
-   //printk("data_and_free-4\n");
-
    
    kmem_cache_free(utmem_pampd_cache, n);
    return ret;
@@ -689,30 +679,21 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 	
 	for(i=0; i<num_of_pages; i++){
 	
-		//printk("1");	
 		spin_lock(&ssd_ev->ev_lock); 
 		n = list_first_entry(&ssd_ev->head, struct utmem_pampd, entry_list);
 
-		//printk("-2");	
 		if(unlikely(!n)){				
-			//printk("EXIT-A\n");	
 			spin_unlock(&ssd_ev->ev_lock); 
 			goto wakeup_and_failed;
 		}	
 		else if(unlikely(n->status == IO_IN_PROGRESS)){
-			//printk("EXIT-B\n");	
 			spin_unlock(&ssd_ev->ev_lock); 
 			continue;
 		}
 		
-		//printk("-3");	
 		list_del(&n->entry_list); 	
 		spin_unlock(&ssd_ev->ev_lock); 
 		
-		//printk("-4\n");	
-		printk("1-Moving: %d-%lu-%d\n", i, n->page, n->type);
-		
-		//page = (struct page *)__get_free_page(UTMEM_GFP_MASK);
 		page = alloc_page(UTMEM_GFP_MASK);
    		
 		if(!page){	
@@ -722,25 +703,17 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 			goto wakeup_and_failed;
 		}
 		
-		//printk("5");	
 		ret = read_and_free_from_ssd(client->g, page, n);
 		BUG_ON(ret);
-
-		//printk("-6");	
 		
 		n->type = MEMORY;
 		n->page = (unsigned long) page_address(page);
 		
-		printk("2-Moving: %d-%lu-%d\n", i, n->page, n->type);
-
 		spin_lock(&mem_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &mem_ev->head); 
 		spin_unlock(&mem_ev->ev_lock); 
-		//printk("-7\n");	
 	}
 	
-	//printk("EXIT-CORRECT\n");	
-
 wakeup_and_failed:
 
 	atomic_sub(i, &client->ssd_used); 

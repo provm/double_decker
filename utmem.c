@@ -5,15 +5,10 @@
 #include "utmem.h"
 #include "tmem.h"
 
-#define EVICT_BATCH 256*16 // 1-MB
-// #define THRES 256
-
+#define EVICT_BATCH 256*16 
 #define MEM_MOVE_LT 256*64 
 #define MEM_MOVE_HT 256*16 
-#define MEM_MOVE_BATCH 256*16
-
 #define SSD_MOVE_HT 256*16
-#define SSD_MOVE_BATCH 256*16
 
 #define MAX(a,b) (a) > (b) ? (a) : (b)
 
@@ -23,11 +18,12 @@ static struct global_info *global;
 
 static int readjust_client_entitlements(struct global_info *g);
 static int check_and_readjust_allocations(struct tmem_client *client);
+static int cache_cleanup(void);
 
 static ssize_t utmem_total_objects_show(struct kobject *kobj, struct kobj_attribute *attr,
                         char *buf)
 {
-        return sprintf(buf, "USED:%u SGETS:%lu\n", atomic_read(&global->mem_used), global->mem_sgets);
+        return sprintf(buf, "%u\n", atomic_read(&global->mem_used));
 }
 
 static struct kobj_attribute utmem_total_objects_attribute = __ATTR(mem_used,0444,utmem_total_objects_show,NULL);
@@ -544,16 +540,13 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages);
 
 static int evict_from_pool(struct tmem_pool *pool, int num, bool ssd)
 {
-	int flushed = 0, ret = 0;
+	int flushed = 0, moved = 0, ret = 0;
 	
-	if(!ssd &&
-		atomic_read(&pool->mem_used) > (pool->mem_entitlement - MEM_MOVE_BATCH) &&
-		(pool->ssd_entitlement - atomic_read(&pool->ssd_used)) >= MEM_MOVE_BATCH){
-
-		ret = tcache_move_mem_to_ssd(pool, MEM_MOVE_BATCH);	
+	if(!ssd && (pool->ssd_entitlement - atomic_read(&pool->ssd_used)) >= EVICT_BATCH){
+		moved = tcache_move_mem_to_ssd(pool, EVICT_BATCH);	
 	}
 
-	if(!ret){
+	if(!moved){
 	
 		struct eviction_info *ev = ssd ? pool->ssd_eviction_info : pool->mem_eviction_info;
 		atomic_t *used = ssd ? &pool->ssd_used : &pool->mem_used;
@@ -580,7 +573,7 @@ static int evict_from_pool(struct tmem_pool *pool, int num, bool ssd)
       		//local_irq_restore(flags);
   	}
 
-  	return flushed;   
+  	return (moved ? moved : -flushed);   
 }
 
 
@@ -1106,7 +1099,7 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
 {
         struct tmem_pool *pool;
         int ret = -1;
-        //int entitlement;
+        int evicted = 0;
         
         client->g->puts++;
 
@@ -1115,17 +1108,10 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
                 goto out;
         WARN_ON(client != pool->client);
 	
-        if(client->g->mem_limit - MEM_MOVE_BATCH < atomic_read(&client->g->mem_used)){
-             if(atomic_inc_and_test(&client->g->evicting)){
-                       utmem_evict_memory(client->g);
-             }
-             atomic_dec(&client->g->evicting);
-        }
-       
-       if(client->g->ssd_limit - SSD_MOVE_HT < atomic_read(&client->g->ssd_used)){
-               utmem_evict_ssd(client->g);
-               goto out;
-       }
+	evicted = cache_cleanup();
+	if(evicted){
+		printk("Sync eviction triggered: %d\n", evicted);
+	}
 
 	// local_irq_save(flags);
 
@@ -1480,6 +1466,40 @@ int utmem_vmshutdown(struct kvm *kvm)
 	return ret;
 }
 
+static int cache_cleanup(void)
+{
+	int evicted = 0;
+
+	if(global->mem_limit - MEM_MOVE_HT < atomic_read(&global->mem_used)){
+		if(atomic_inc_and_test(&global->evicting)){
+			evicted += utmem_evict_memory(global);
+		}
+		atomic_dec(&global->evicting);
+	}
+
+	if(global->ssd_limit - SSD_MOVE_HT < atomic_read(&global->ssd_used)){
+		evicted += utmem_evict_ssd(global);
+	}
+
+	return evicted;
+}
+
+int kthread_cache_cleanup(void *data)
+{
+	int evicted = 0;
+
+	while(!kthread_should_stop()){
+	
+		evicted = 0;
+		evicted = cache_cleanup();
+		
+		printk("Kthread-1: Objects evicted/moved from MEM is %d\n", evicted);
+		ssleep(5);
+	}
+
+	return evicted;
+}
+
 int kthread_move_ssd_to_mem(void *data)
 {	
 	struct tmem_client *client;
@@ -1492,10 +1512,9 @@ int kthread_move_ssd_to_mem(void *data)
 	
 		moved = 0;
 	
-		printk("Kthread-2: START! \n");
 		if(
 			atomic_read(&global->mem_used) < (global->mem_limit - MEM_MOVE_LT) &&
-			atomic_read(&global->ssd_used) >= MEM_MOVE_BATCH
+			atomic_read(&global->ssd_used) >= EVICT_BATCH
 		){
 			client = pick_underutilized_client(global);
 
@@ -1503,12 +1522,12 @@ int kthread_move_ssd_to_mem(void *data)
 				pool = pick_underutilized_pool(client);
 
 				if(pool)
-					moved = tcache_move_ssd_to_mem(pool, MEM_MOVE_BATCH);
+					moved = tcache_move_ssd_to_mem(pool, EVICT_BATCH);
 			}
 		
 
 		}
-		printk("Kthread-2: STOP! Objects moved from SSD to MEM is %d\n", moved);
+		printk("Kthread-2: Objects moved from SSD to MEM is %d\n", moved);
 		ssleep(5);
 	}
 	
@@ -1539,6 +1558,7 @@ int utmem_init_module(void)
 
 	init_utmem(global);
 
+	kthread1 = kthread_run(&kthread_cache_cleanup, NULL, "cgtmem_cache_cleanup");
 	kthread2 = kthread_run(&kthread_move_ssd_to_mem, NULL, "cgtmem_ssd_to_mem");
 
 	printk("---------------------------------------CGTMEM INSERTED SUCESSFULLY ------------------------------------------!\n");
@@ -1559,6 +1579,7 @@ void utmem_cleanup_module(void)
 	cleanup_utmem(global);
 
 	kfree(global);
+	kthread_stop(kthread1);
 	kthread_stop(kthread2);
 	
 	printk("---------------------------------------CGTMEM REMOVED SUCESSFULLY ------------------------------------------!\n");
