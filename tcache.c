@@ -14,14 +14,14 @@
 #include "utmem.h"
 
 #define MIN_EVICT 64
-#define LIMIT_THRESH 256
+#define LIMIT_THRESH 256*16
 #define REALLY_OLD (120 * HZ)
 #define REALLY_RECENT (5 * HZ)
 #define EVICTION_TRIAL_BATCH 128
 
 #define SSD_NAME "/dev/sda1"
 
-#define EVICT_BATCH 64*256
+#define EVICT_BATCH 256
 #define FREE_MEM_THRESH 200*256  // 200MB free
 
 static struct kmem_cache *utmem_pampd_cache;
@@ -445,6 +445,8 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	list_del(&n->entry_list);
 	spin_unlock(&ev->ev_lock);
 	
+	client->g->mem_sgets++;
+	
 	ret = 0;
    }
 
@@ -708,7 +710,7 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		spin_unlock(&ssd_ev->ev_lock); 
 		
 		//printk("-4\n");	
-		//printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
+		printk("1-Moving: %d-%lu-%d\n", i, n->page, n->type);
 		
 		//page = (struct page *)__get_free_page(UTMEM_GFP_MASK);
 		page = alloc_page(UTMEM_GFP_MASK);
@@ -727,7 +729,9 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		//printk("-6");	
 		
 		n->type = MEMORY;
-		n->page = (unsigned long) page;
+		n->page = (unsigned long) page_address(page);
+		
+		printk("2-Moving: %d-%lu-%d\n", i, n->page, n->type);
 
 		spin_lock(&mem_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &mem_ev->head); 

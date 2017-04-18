@@ -5,15 +5,15 @@
 #include "utmem.h"
 #include "tmem.h"
 
-#define EVICT_BATCH 256*32 // 32-MB
+#define EVICT_BATCH 256*16 // 1-MB
 // #define THRES 256
 
-#define MEM_MOVE_LT 256*256 
-#define MEM_MOVE_HT 256*64  
-#define MEM_MOVE_BATCH 256*64
+#define MEM_MOVE_LT 256*64 
+#define MEM_MOVE_HT 256*16 
+#define MEM_MOVE_BATCH 256*16
 
-#define SSD_MOVE_HT 256*64
-#define SSD_MOVE_BATCH 256*64
+#define SSD_MOVE_HT 256*16
+#define SSD_MOVE_BATCH 256*16
 
 #define MAX(a,b) (a) > (b) ? (a) : (b)
 
@@ -27,7 +27,7 @@ static int check_and_readjust_allocations(struct tmem_client *client);
 static ssize_t utmem_total_objects_show(struct kobject *kobj, struct kobj_attribute *attr,
                         char *buf)
 {
-        return sprintf(buf, "%u\n", atomic_read(&global->mem_used));
+        return sprintf(buf, "USED:%u SGETS:%lu\n", atomic_read(&global->mem_used), global->mem_sgets);
 }
 
 static struct kobj_attribute utmem_total_objects_attribute = __ATTR(mem_used,0444,utmem_total_objects_show,NULL);
@@ -1484,12 +1484,14 @@ int kthread_move_ssd_to_mem(void *data)
 {	
 	struct tmem_client *client;
 	struct tmem_pool *pool;
-	int ret = 0;
+	int moved;
 	
 	printk("Kthread-2: Initialized\n");
 	
 	while(!kthread_should_stop()){
-		
+	
+		moved = 0;
+	
 		printk("Kthread-2: START! \n");
 		if(
 			atomic_read(&global->mem_used) < (global->mem_limit - MEM_MOVE_LT) &&
@@ -1501,12 +1503,12 @@ int kthread_move_ssd_to_mem(void *data)
 				pool = pick_underutilized_pool(client);
 
 				if(pool)
-					ret = tcache_move_ssd_to_mem(pool, MEM_MOVE_BATCH);
+					moved = tcache_move_ssd_to_mem(pool, MEM_MOVE_BATCH);
 			}
 		
 
 		}
-		printk("Kthread-2: STOP! Objects moved from SSD to MEM is %d\n", ret);
+		printk("Kthread-2: STOP! Objects moved from SSD to MEM is %d\n", moved);
 		ssleep(5);
 	}
 	

@@ -85,4 +85,4 @@ __attribute__((section(".modinfo"))) =
 "depends=kvm";
 
 
-MODULE_INFO(srcversion, "1BA2ED3F19252F6CD980B14");
+MODULE_INFO(srcversion, "4BCF4A2DC3664937DB54AEC");
