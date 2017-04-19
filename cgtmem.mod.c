@@ -22,7 +22,6 @@ __attribute__((section("__versions"))) = {
 	{ 0xec795900, __VMLINUX_SYMBOL_STR(kmem_cache_destroy) },
 	{ 0x2244ef90, __VMLINUX_SYMBOL_STR(fs_bio_set) },
 	{ 0x342ddc45, __VMLINUX_SYMBOL_STR(kmalloc_caches) },
-	{ 0xf9a482f9, __VMLINUX_SYMBOL_STR(msleep) },
 	{ 0x30bef6d8, __VMLINUX_SYMBOL_STR(bio_alloc_bioset) },
 	{ 0xda3e43d1, __VMLINUX_SYMBOL_STR(_raw_spin_unlock) },
 	{ 0x5c8795c3, __VMLINUX_SYMBOL_STR(kvm_release_page_dirty) },
@@ -63,6 +62,7 @@ __attribute__((section("__versions"))) = {
 	{ 0x721f9ab5, __VMLINUX_SYMBOL_STR(handle_tmem_hcall) },
 	{ 0x93fca811, __VMLINUX_SYMBOL_STR(__get_free_pages) },
 	{ 0xdb7305a1, __VMLINUX_SYMBOL_STR(__stack_chk_fail) },
+	{ 0x1000e51, __VMLINUX_SYMBOL_STR(schedule) },
 	{ 0x63db7751, __VMLINUX_SYMBOL_STR(pv_cpu_ops) },
 	{ 0xbc4817b9, __VMLINUX_SYMBOL_STR(wake_up_process) },
 	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
@@ -71,10 +71,13 @@ __attribute__((section("__versions"))) = {
 	{ 0xa5526619, __VMLINUX_SYMBOL_STR(rb_insert_color) },
 	{ 0x21bdc1b1, __VMLINUX_SYMBOL_STR(kmem_cache_create) },
 	{ 0x4302d0eb, __VMLINUX_SYMBOL_STR(free_pages) },
+	{ 0xcf21d241, __VMLINUX_SYMBOL_STR(__wake_up) },
 	{ 0xb3f7646e, __VMLINUX_SYMBOL_STR(kthread_should_stop) },
+	{ 0x34f22f94, __VMLINUX_SYMBOL_STR(prepare_to_wait_event) },
 	{ 0x37a0cba, __VMLINUX_SYMBOL_STR(kfree) },
 	{ 0x69ad2f20, __VMLINUX_SYMBOL_STR(kstrtouint) },
 	{ 0xe8a63b8c, __VMLINUX_SYMBOL_STR(gfn_to_page) },
+	{ 0xfa66f77c, __VMLINUX_SYMBOL_STR(finish_wait) },
 	{ 0xca9360b5, __VMLINUX_SYMBOL_STR(rb_next) },
 	{ 0x76d9fbdf, __VMLINUX_SYMBOL_STR(mm_kobj) },
 };
@@ -85,4 +88,4 @@ __attribute__((section(".modinfo"))) =
 "depends=kvm";
 
 
-MODULE_INFO(srcversion, "DF0FEA949BA593B1C94293F");
+MODULE_INFO(srcversion, "261BE643D1998C3D0B52D21");
