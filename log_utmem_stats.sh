@@ -1,0 +1,1 @@
+cat /sys/kernel/mm/utmem/0/4/stats && cat /sys/kernel/mm/utmem/0/5/stats && cat /sys/kernel/mm/utmem/mem_used && cat /sys/kernel/mm/utmem/global_limit && cat /sys/kernel/mm/utmem/ssd_used >> stats/test.out

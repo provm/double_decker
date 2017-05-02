@@ -1238,8 +1238,8 @@ out:
 			atomic_read(&global->ssd_used) >= EVICT_BATCH
 		){
 			
-			kthread2_flag = true;
-			wake_up_interruptible(&kthread2_wq);		
+			//kthread2_flag = true;
+			//wake_up_interruptible(&kthread2_wq);		
 		}
 			
 	}
@@ -1556,7 +1556,7 @@ int utmem_init_module(void)
 	init_utmem(global);
 
 	kthread1 = kthread_run(&kthread_cache_cleanup, NULL, "cgtmem_cache_cleanup");
-	kthread2 = kthread_run(&kthread_move_ssd_to_mem, NULL, "cgtmem_ssd_to_mem");
+	//kthread2 = kthread_run(&kthread_move_ssd_to_mem, NULL, "cgtmem_ssd_to_mem");
 
 	printk("---------------------------------------CGTMEM INSERTED SUCESSFULLY ------------------------------------------!\n");
 
@@ -1581,9 +1581,9 @@ void utmem_cleanup_module(void)
 	wake_up_interruptible(&kthread1_wq);		
 	kthread_stop(kthread1);
 
-	kthread2_flag = true;
-	wake_up_interruptible(&kthread2_wq);		
-	kthread_stop(kthread2);
+	//kthread2_flag = true;
+	//wake_up_interruptible(&kthread2_wq);		
+	//kthread_stop(kthread2);
 	
 	printk("---------------------------------------CGTMEM REMOVED SUCESSFULLY ------------------------------------------!\n");
 }
