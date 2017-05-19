@@ -142,19 +142,25 @@ static struct attribute_group utmem_attr_group = {
 */
 static int readjust_client_entitlements(struct global_info *g)
 {
-   int total_weight = 100, i;
+   int total_mem_weight = 100, total_ssd_weight=100, i;
    
    for(i=0; i<MAX_VMS && g->tmem_clients[i].id >= 0; ++i){
        struct tmem_client *client = &g->tmem_clients[i];
-       utmemassert(client->weight <= 100 && client->weight >= 0);
-       total_weight -= client->weight;
+       
+       utmemassert(client->mem_weight <= 100 && client->mem_weight >= 0);
+       total_mem_weight -= client->mem_weight;
+       
+       utmemassert(client->ssd_weight <= 100 && client->ssd_weight >= 0);
+       total_ssd_weight -= client->ssd_weight;
    }
-   if(total_weight)
+ 
+   if(total_mem_weight && total_ssd_weight)
         return -1;
+   
    for(i=0; i<MAX_VMS && g->tmem_clients[i].id >= 0; ++i){
            struct tmem_client *client = &g->tmem_clients[i];
-           client->mem_entitlement = client->weight * g->mem_limit / 100;
-           client->ssd_entitlement = client->weight * g->ssd_limit / 100;
+           client->mem_entitlement = client->mem_weight * g->mem_limit / 100;
+           client->ssd_entitlement = client->ssd_weight * g->ssd_limit / 100;
            check_and_readjust_allocations(client);
    }        
 
@@ -192,7 +198,7 @@ static ssize_t client_weight_show(struct kobject *kobj, struct kobj_attribute *a
         if(!client)
                return -EINVAL;
 
-        return sprintf(buf, "%d\n", client->weight);
+        return sprintf(buf, "MEM:%d SSD:%d\n", client->mem_weight, client->ssd_weight);
 }
 
 static ssize_t client_weight_set(struct kobject *kobj,
@@ -209,11 +215,17 @@ static ssize_t client_weight_set(struct kobject *kobj,
                return -EINVAL;
 
         err = kstrtoint(buf, 10, &mode);
-        if (err || mode < 0 || mode > 100)
+        
+	if (err)
                 return -EINVAL;
-
-        client->weight = mode;
-        readjust_client_entitlements(client->g);
+	else if(mode >= 0 && mode <= 100)
+		client->mem_weight = mode;
+	else if(mode >= 1000 && mode <= 1100)
+		client->ssd_weight = mode;
+        else
+                return -EINVAL;
+	
+	readjust_client_entitlements(client->g);
         return count;
 }
 
@@ -338,7 +350,8 @@ static inline struct tmem_client* new_tmem_client(struct kvm *kvm, struct global
     client->guest_mm = kvm->mm;
     client->id = i;
     client->g = g;
-    client->weight = 0;
+    client->mem_weight = 0;
+    client->ssd_weight = 0;
     atomic_set(&client->evicting, -1);
 
     ++g->current_num;
@@ -395,7 +408,8 @@ static inline int destroy_tmem_client(struct kvm *kvm, struct global_info *g)
 
 	client->guest_mm = NULL;
 	client->id = -1;
-	client->weight = 0;
+	client->mem_weight = 0;
+	client->ssd_weight = 0;
 
 	sysfs_remove_group(client->client_kobj, &client_attr_group);
 	kobject_del(client->client_kobj);
@@ -517,7 +531,7 @@ static ssize_t pool_stats_show(struct kobject *kobj, struct kobj_attribute *attr
         if(!pool)
                return -EINVAL;
 
-        return sprintf(buf, "gets:%u sgets:%u puts:%u flushes:%u evicts:%u\nmem_to_ssd:%u, ssd_to_mem:%u\n", 
+        return sprintf(buf, "gets:%u sgets:%u puts:%u flushes:%u evicts:%u mem_to_ssd:%u, ssd_to_mem:%u\n", 
 				pool->total_gets, pool->succ_gets, pool->succ_puts, 
 				pool->succ_flushes,pool->evicts,
 				pool->move_mem_to_ssd, pool->move_ssd_to_mem);
@@ -954,7 +968,7 @@ static int utmem_evict_memory(struct global_info *g)
 
        if(client->mem_entitlement < used + EVICT_BATCH){  
              cls[count++] = client;   // Already over the limits
-             cuml_weight += client->weight;
+             cuml_weight += client->mem_weight;
        }else{
              under_utilized_others += client->mem_entitlement - used;
        }
@@ -967,10 +981,10 @@ static int utmem_evict_memory(struct global_info *g)
    
    client = cls[0];    
    
-   current_max_overuse = get_overuse(client->mem_entitlement, client->weight, atomic_read(&client->mem_used), under_utilized_others, cuml_weight);
+   current_max_overuse = get_overuse(client->mem_entitlement, client->mem_weight, atomic_read(&client->mem_used), under_utilized_others, cuml_weight);
 
    for(i=1; i<count; ++i){
-         int new_overuse = get_overuse(cls[i]->mem_entitlement, cls[i]->weight,  atomic_read(&cls[i]->mem_used), under_utilized_others, cuml_weight);
+         int new_overuse = get_overuse(cls[i]->mem_entitlement, cls[i]->mem_weight,  atomic_read(&cls[i]->mem_used), under_utilized_others, cuml_weight);
          if( new_overuse > current_max_overuse){
              client = cls[i];     
          }
@@ -1059,7 +1073,7 @@ static int utmem_evict_ssd (struct global_info *g)
 
        if(client->ssd_entitlement < used + EVICT_BATCH){  
              cls[count++] = client;   // Already over the limits
-             cuml_weight += client->weight;
+             cuml_weight += client->ssd_weight;
        }else{
              under_utilized_others += client->ssd_entitlement - used;
        }
@@ -1071,10 +1085,10 @@ static int utmem_evict_ssd (struct global_info *g)
          return -1;
    
    client = cls[0];    
-   current_max_overuse = get_overuse(client->ssd_entitlement, client->weight, atomic_read(&client->ssd_used), under_utilized_others, cuml_weight);
+   current_max_overuse = get_overuse(client->ssd_entitlement, client->ssd_weight, atomic_read(&client->ssd_used), under_utilized_others, cuml_weight);
 
    for(i=1; i<count; ++i){
-         int new_overuse = get_overuse(cls[i]->ssd_entitlement, cls[i]->weight,  atomic_read(&cls[i]->ssd_used), under_utilized_others, cuml_weight);
+         int new_overuse = get_overuse(cls[i]->ssd_entitlement, cls[i]->ssd_weight,  atomic_read(&cls[i]->ssd_used), under_utilized_others, cuml_weight);
          if( new_overuse > current_max_overuse){
              client = cls[i];     
          }
@@ -1203,7 +1217,7 @@ static struct tmem_pool *pick_underutilized_pool(struct tmem_client *client){
 	 	}
 	}
 
-	printk("targetted client:%d, pool: %d\n", client->id, pool->pool_id);
+	//printk("targetted client:%d, pool: %d\n", client->id, pool->pool_id);
 	return pool; 
 }
 
@@ -1494,7 +1508,7 @@ int kthread_cache_cleanup(void *data)
 			evicted += utmem_evict_ssd(global);
 		}
 
-		printk("Kthread-1: Objects evicted/moved from MEM is %d\n", evicted);
+		//printk("Kthread-1: Objects evicted/moved from MEM is %d\n", evicted);
 
 		kthread1_flag = false;
 	}

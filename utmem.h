@@ -65,12 +65,12 @@ typedef struct utmem_pampd{
             type;
 }utmem_pampd;
 
-/*
-	per vm basis right ?
-*/
+
 struct tmem_client{
         int id;
-        int weight;
+       	int mem_weight;
+       	int ssd_weight;
+
         struct global_info *g;
         void *eviction_info;
         

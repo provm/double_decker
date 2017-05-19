@@ -1,8 +1,8 @@
-cmd_/home/deba/prashanth/tmem_module-2.0/utmem.o := gcc -Wp,-MD,/home/deba/prashanth/tmem_module-2.0/.utmem.o.d  -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/include -I./arch/x86/include -Iarch/x86/include/generated/uapi -Iarch/x86/include/generated  -Iinclude -I./arch/x86/include/uapi -Iarch/x86/include/generated/uapi -I./include/uapi -Iinclude/generated/uapi -include ./include/linux/kconfig.h -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -std=gnu89 -m64 -mno-80387 -mno-fp-ret-in-387 -mtune=generic -mno-red-zone -mcmodel=kernel -funit-at-a-time -maccumulate-outgoing-args -DCONFIG_X86_X32_ABI -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -DCONFIG_AS_FXSAVEQ=1 -DCONFIG_AS_SSSE3=1 -DCONFIG_AS_CRC32=1 -DCONFIG_AS_AVX=1 -DCONFIG_AS_AVX2=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -fno-delete-null-pointer-checks -O2 --param=allow-store-data-races=0 -Wframe-larger-than=1024 -fstack-protector -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments -g -gdwarf-4 -pg -mfentry -DCC_USING_FENTRY -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(utmem)"  -D"KBUILD_MODNAME=KBUILD_STR(cgtmem)" -c -o /home/deba/prashanth/tmem_module-2.0/.tmp_utmem.o /home/deba/prashanth/tmem_module-2.0/utmem.c
+cmd_/home/synerg/prashanth/tmem_module-2.0/utmem.o := gcc -Wp,-MD,/home/synerg/prashanth/tmem_module-2.0/.utmem.o.d  -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/include -I./arch/x86/include -Iarch/x86/include/generated/uapi -Iarch/x86/include/generated  -Iinclude -I./arch/x86/include/uapi -Iarch/x86/include/generated/uapi -I./include/uapi -Iinclude/generated/uapi -include ./include/linux/kconfig.h -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -std=gnu89 -m64 -mno-80387 -mno-fp-ret-in-387 -mtune=generic -mno-red-zone -mcmodel=kernel -funit-at-a-time -maccumulate-outgoing-args -DCONFIG_X86_X32_ABI -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -DCONFIG_AS_FXSAVEQ=1 -DCONFIG_AS_SSSE3=1 -DCONFIG_AS_CRC32=1 -DCONFIG_AS_AVX=1 -DCONFIG_AS_AVX2=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -fno-delete-null-pointer-checks -O2 --param=allow-store-data-races=0 -Wframe-larger-than=1024 -fstack-protector -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments -g -gdwarf-4 -pg -mfentry -DCC_USING_FENTRY -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(utmem)"  -D"KBUILD_MODNAME=KBUILD_STR(cgtmem)" -c -o /home/synerg/prashanth/tmem_module-2.0/.tmp_utmem.o /home/synerg/prashanth/tmem_module-2.0/utmem.c
 
-source_/home/deba/prashanth/tmem_module-2.0/utmem.o := /home/deba/prashanth/tmem_module-2.0/utmem.c
+source_/home/synerg/prashanth/tmem_module-2.0/utmem.o := /home/synerg/prashanth/tmem_module-2.0/utmem.c
 
-deps_/home/deba/prashanth/tmem_module-2.0/utmem.o := \
+deps_/home/synerg/prashanth/tmem_module-2.0/utmem.o := \
   include/linux/spinlock.h \
     $(wildcard include/config/smp.h) \
     $(wildcard include/config/debug/spinlock.h) \
@@ -642,7 +642,7 @@ deps_/home/deba/prashanth/tmem_module-2.0/utmem.o := \
   include/linux/delay.h \
   arch/x86/include/asm/delay.h \
   include/asm-generic/delay.h \
-  /home/deba/prashanth/tmem_module-2.0/utmem.h \
+  /home/synerg/prashanth/tmem_module-2.0/utmem.h \
   include/linux/module.h \
     $(wildcard include/config/module/sig.h) \
     $(wildcard include/config/kallsyms.h) \
@@ -979,10 +979,10 @@ deps_/home/deba/prashanth/tmem_module-2.0/utmem.o := \
   include/uapi/linux/aio_abi.h \
   arch/x86/include/asm/kvm_emulate.h \
   include/linux/tmem_interface.h \
-  /home/deba/prashanth/tmem_module-2.0/tmem.h \
+  /home/synerg/prashanth/tmem_module-2.0/tmem.h \
   include/linux/hash.h \
     $(wildcard include/config/arch/has/fast/multiplier.h) \
 
-/home/deba/prashanth/tmem_module-2.0/utmem.o: $(deps_/home/deba/prashanth/tmem_module-2.0/utmem.o)
+/home/synerg/prashanth/tmem_module-2.0/utmem.o: $(deps_/home/synerg/prashanth/tmem_module-2.0/utmem.o)
 
-$(deps_/home/deba/prashanth/tmem_module-2.0/utmem.o):
+$(deps_/home/synerg/prashanth/tmem_module-2.0/utmem.o):
