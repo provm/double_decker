@@ -221,6 +221,7 @@ static int ssd_alloc_and_write(struct global_info *g, utmem_pampd *n)
    BUG_ON(!p);
 
    n->status = IO_IN_PROGRESS;
+   n->type = SSD;
 
    lock_page(p);
    bio = get_ssd_bio(GFP_KERNEL, p, end_ssd_bio_write, n);  
@@ -243,23 +244,27 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 {
 	struct bio *bio;
 	int uptodate;
-	bool checker = false;
+	bool checker=false;
 
 	BUG_ON(!page);
 
 	if(unlikely(n->status) != UPTODATE){
-		printk("------WAITING UPDATE IN SSD----- \n"); 
-		checker = true;	
+		printk("1: ------WAITING UPDATE IN SSD----- \n"); 
+		//return -EBUSY;	
+		checker=true;
 	}
 
 	while(n->status != UPTODATE){
-	 /*
-		TODO: IO on the way, Is there a better way
-		to handle this? 
-	*/
+		/*
+			TODO: IO on the way, Is there a better way to handle this? 
+		*/
 		asm volatile(
 		     "pause"
 		 );
+	}
+
+	if(unlikely(checker)){
+		printk("2: ------TRYING TO LOCK PAGE----- \n"); 
 	}
 
 	lock_page(page);
@@ -270,11 +275,18 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 	bio->bi_bdev = g->bdev;
 	submit_bio(READ_SYNC, bio);
 
+	if(unlikely(checker)){
+		printk("3: ------WAITING FOR PAGE LOCKED----- \n"); 
+	}
 	wait_on_page_locked(page); 
 
 	uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
 	bio_put(bio);
 	mark_free(g, n->page);
+	
+	if(unlikely(checker)){
+		printk("4: -----UPTODATE BIT %d----- \n", uptodate); 
+	}
 	
 	if(uptodate)
 	   return 0;
@@ -342,7 +354,7 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
    if(is_ssd){
 	
 	ssd_alloc_and_write(client->g, n);
-	n->type = SSD;
+	//n->type = SSD;
 
 	atomic_inc(&client->ssd_used); 
 	atomic_inc(&client->g->ssd_used);
@@ -643,8 +655,8 @@ int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 		spin_unlock(&mem_ev->ev_lock); 
 		
 		//printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
-		n->type = SSD;
 		ssd_alloc_and_write(client->g, n);
+		//n->type = SSD;
 
 		spin_lock(&ssd_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &ssd_ev->head); 
@@ -663,7 +675,7 @@ wakeup_and_failed:
 	atomic_add(i, &pool->ssd_used);
 
 	pool->move_mem_to_ssd += i;
-	printk("Moved from mem to ssd: %d \n", i);
+	//printk("Moved from mem to ssd: %d \n", i);
 	
 	return i;
 }

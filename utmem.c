@@ -221,7 +221,7 @@ static ssize_t client_weight_set(struct kobject *kobj,
 	else if(mode >= 0 && mode <= 100)
 		client->mem_weight = mode;
 	else if(mode >= 1000 && mode <= 1100)
-		client->ssd_weight = mode;
+		client->ssd_weight = mode-1000;
         else
                 return -EINVAL;
 	
@@ -1235,26 +1235,28 @@ static int utmem_get_page(struct tmem_client *client, int pool_id, struct tmem_o
         WARN_ON(client != pool->client);
         pool->total_gets++;
 
-//        local_irq_save(flags);
+	// local_irq_save(flags);
         if (atomic_read(&pool->obj_count) > 0)
                ret = tmem_get(pool, oidp, index, (char *)(page),
                                         &size, 0, is_ephemeral(pool));
-//        local_irq_restore(flags);
+	// local_irq_restore(flags);
 out:
        	if(!ret)
 	{
             	pool->succ_gets++;
 		atomic_dec(&pool->ssd_uptodate);
 		atomic_dec(&pool->client->ssd_uptodate);
-		
+
+		/*
 		if(
 			atomic_read(&global->mem_used) < (global->mem_limit - MEM_MOVE_LT) &&
 			atomic_read(&global->ssd_used) >= EVICT_BATCH
 		){
 			
-			//kthread2_flag = true;
-			//wake_up_interruptible(&kthread2_wq);		
+			kthread2_flag = true;
+			wake_up_interruptible(&kthread2_wq);		
 		}
+		*/
 			
 	}
 
@@ -1500,6 +1502,7 @@ int kthread_cache_cleanup(void *data)
 		if(global->mem_limit - MEM_MOVE_HT < atomic_read(&global->mem_used)){
 			if(atomic_inc_and_test(&global->evicting)){
 				evicted += utmem_evict_memory(global);
+				//printk("Kthread-1: Eviction started %d\n");
 			}
 			atomic_dec(&global->evicting);
 		}
