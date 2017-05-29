@@ -94,11 +94,14 @@ struct tmem_client{
 
 
 struct global_info{
-         raw_spinlock_t kvm_tmem_lock;
-         struct tmem_client tmem_clients[MAX_VMS];
+         
+	 raw_spinlock_t kvm_tmem_lock;
+         
          int current_num;
+	 struct tmem_client tmem_clients[MAX_VMS];
          struct kobject *utmem_kobj;
-         atomic_t mem_used;
+         
+	 atomic_t mem_used;
          atomic_t ssd_used;
          atomic_t evicting;
 
@@ -109,6 +112,8 @@ struct global_info{
          unsigned long puts;
          unsigned long flushes;
 	 //unsigned long mem_sgets;
+
+	 atomic_t pending_async_writes;
 
          struct block_device *bdev;
          unsigned ssd_bmap_size;

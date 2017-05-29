@@ -1496,6 +1496,7 @@ int kthread_cache_cleanup(void *data)
 	while(!kthread_should_stop()){
 		
 		wait_event_interruptible(kthread1_wq, kthread1_flag);
+		kthread1_flag = false;
 		
 		evicted = 0;
 
@@ -1511,9 +1512,11 @@ int kthread_cache_cleanup(void *data)
 			evicted += utmem_evict_ssd(global);
 		}
 
+		/* Waiting for pending writes to terminate */
+		while(!atomic_read(&global->pending_async_writes));
+
 		//printk("Kthread-1: Objects evicted/moved from MEM is %d\n", evicted);
 
-		kthread1_flag = false;
 	}
 	printk("Kthread-1: Terminated\n");
 

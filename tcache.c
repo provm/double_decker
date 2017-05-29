@@ -118,6 +118,8 @@ void end_ssd_bio_write(struct bio *bio, int err)
 //        n->page = bio->bi_iter.bi_sector >> (PAGE_SHIFT - 9);
 //        wmb();
         n->status = UPTODATE;
+	atomic_dec(&n->tmem_obj->pool->client->g->pending_async_writes);
+	
 	atomic_inc(&n->tmem_obj->pool->ssd_uptodate); 
 	atomic_inc(&n->tmem_obj->pool->client->ssd_uptodate); 
 	
@@ -222,6 +224,7 @@ static int ssd_alloc_and_write(struct global_info *g, utmem_pampd *n)
 
    n->status = IO_IN_PROGRESS;
    n->type = SSD;
+   atomic_inc(&g->pending_async_writes);
 
    lock_page(p);
    bio = get_ssd_bio(GFP_KERNEL, p, end_ssd_bio_write, n);  
@@ -249,7 +252,7 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 	BUG_ON(!page);
 
 	if(unlikely(n->status) != UPTODATE){
-		printk("1: ------WAITING UPDATE IN SSD----- \n"); 
+		printk("1: ------WAITING UPDATE IN SSD----- : %lu \n", n->page); 
 		//return -EBUSY;	
 		checker=true;
 	}
