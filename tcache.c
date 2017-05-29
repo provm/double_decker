@@ -206,19 +206,25 @@ static void mark_free(struct global_info *g, unsigned long block_no)
 
 static void free_ssd_block(struct global_info *g, utmem_pampd *n)
 {
-	//BUG_ON(n->status != UPTODATE);
-	//printk(KERN_INFO "%s block=%lu\n", __func__,n->page);
-    
-	if(unlikely(n->status) != UPTODATE){
-		printk("1: ------FREE: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
-	}
+	/*
+		BUG_ON(n->status != UPTODATE);
+		printk(KERN_INFO "%s block=%lu\n", __func__,n->page);
+	    
+		if(unlikely(n->status) != UPTODATE){
+			printk("1: ------FREE: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
+		}
+	*/
 
 	while(n->status != UPTODATE){
-		asm volatile(
-		     "pause"
-		 );
-		mdelay(200);
-		//printk("VALUE:%d\n", n->status); 
+		
+		cond_resched();
+		/*
+			asm volatile(
+			     "pause"
+			 );
+			mdelay(200);
+			printk("VALUE:%d\n", n->status); 
+		*/
 	}
 
 	utmemassert(n->page <= g->ssd_limit);
@@ -262,27 +268,33 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 {
 	struct bio *bio;
 	int uptodate;
-	bool checker=false;
+	//bool checker=false;
 
 	BUG_ON(!page);
 
-	if(unlikely(n->status) != UPTODATE){
-		printk("1: ------READ: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
-		//return -EBUSY;	
-		checker=true;
-	}
+	/*
+		if(unlikely(n->status) != UPTODATE){
+			printk("1: ------READ: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
+			//return -EBUSY;	
+			checker=true;
+		}
+	*/
 
 	while(n->status != UPTODATE){
-		asm volatile(
-		     "pause"
-		 );
-		//printk("VALUE:%d\n", n->status); 
-		mdelay(200);
+		cond_resched();
+		/*
+			asm volatile(
+			     "pause"
+			 );
+			mdelay(200);
+			printk("VALUE:%d\n", n->status);
+		*/ 
 	}
 
+	/*
 	if(unlikely(checker)){
 		printk("2: ------TRYING TO LOCK PAGE----- \n"); 
-	}
+	}*/
 
 	lock_page(page);
 	bio = get_ssd_bio(GFP_KERNEL, page, end_ssd_bio_read, n);  
@@ -292,19 +304,21 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 	bio->bi_bdev = g->bdev;
 	submit_bio(READ_SYNC, bio);
 
+	/*
 	if(unlikely(checker)){
 		printk("3: ------WAITING FOR PAGE LOCKED----- \n"); 
-	}
+	}*/
+
 	wait_on_page_locked(page); 
 
 	uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
 	bio_put(bio);
 	mark_free(g, n->page);
 	
+	/*
 	if(unlikely(checker)){
 		printk("4: -----UPTODATE BIT %d----- \n", uptodate); 
-	}
-
+	}*/
 
 	//printk("GET-S: %lu \n", n->page); 
 	

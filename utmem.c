@@ -1510,17 +1510,8 @@ int kthread_cache_cleanup(void *data)
 			evicted += utmem_evict_ssd(global);
 		}
 
+		//while(atomic_read(&global->pending_async_writes));
 		
-		//if(atomic_read(&global->pending_async_writes))
-			//printk("Kthread-1: Waiting %d !\n", atomic_read(&global->pending_async_writes) );
-
-		while(atomic_read(&global->pending_async_writes))
-			;
-		
-		//printk("Kthread-1: FR, Sleep %d !\n",  atomic_read(&global->pending_async_writes) );
-
-		//printk("Kthread-1: Objects evicted/moved from MEM is %d\n", evicted);
-
 	}
 	printk("Kthread-1: Terminated\n");
 

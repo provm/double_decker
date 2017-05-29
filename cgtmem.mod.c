@@ -27,7 +27,6 @@ __attribute__((section("__versions"))) = {
 	{ 0x5c8795c3, __VMLINUX_SYMBOL_STR(kvm_release_page_dirty) },
 	{ 0xd6ee688f, __VMLINUX_SYMBOL_STR(vmalloc) },
 	{ 0x4ece956d, __VMLINUX_SYMBOL_STR(__lock_page) },
-	{ 0xeae3dfd6, __VMLINUX_SYMBOL_STR(__const_udelay) },
 	{ 0xa4e10b4c, __VMLINUX_SYMBOL_STR(handle_vm_destroy) },
 	{ 0xe0cb0001, __VMLINUX_SYMBOL_STR(kobject_del) },
 	{ 0x999e8297, __VMLINUX_SYMBOL_STR(vfree) },
@@ -89,4 +88,4 @@ __attribute__((section(".modinfo"))) =
 "depends=kvm";
 
 
-MODULE_INFO(srcversion, "5B45256CEE04F5F6C21F53E");
+MODULE_INFO(srcversion, "A30CF4900A9E233FCE62E9C");
