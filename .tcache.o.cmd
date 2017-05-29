@@ -815,6 +815,9 @@ deps_/home/deba/prashanth/tmem_module-2.0/tcache.o := \
   include/linux/mempool.h \
   include/linux/ioprio.h \
   include/linux/iocontext.h \
+  include/linux/delay.h \
+  arch/x86/include/asm/delay.h \
+  include/asm-generic/delay.h \
   /home/deba/prashanth/tmem_module-2.0/utmem.h \
   include/linux/module.h \
     $(wildcard include/config/module/sig.h) \

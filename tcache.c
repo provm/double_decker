@@ -1,15 +1,12 @@
 /*
 	Tcache.c
-	
-	1. Where do the accounting/weights info show up ?
-	2. How is the communication from host to guest (if any) ?
-	3. What does utmem mean ?
 */
 
 #include <linux/kthread.h>
 #include <linux/swap.h>
 #include <linux/sched.h>
 #include <linux/bio.h>
+#include <linux/delay.h>
 
 #include "utmem.h"
 
@@ -124,6 +121,8 @@ void end_ssd_bio_write(struct bio *bio, int err)
 	atomic_inc(&n->tmem_obj->pool->client->ssd_uptodate); 
 	
 	bio_put(bio);
+	
+	//printk("PUT-S: %lu \n", n->page); 
 }
 
 void end_ssd_bio_read(struct bio *bio, int err)
@@ -207,39 +206,55 @@ static void mark_free(struct global_info *g, unsigned long block_no)
 
 static void free_ssd_block(struct global_info *g, utmem_pampd *n)
 {
-    BUG_ON(n->status != UPTODATE);
-    //printk(KERN_INFO "%s block=%lu\n", __func__,n->page);
-    utmemassert(n->page <= g->ssd_limit);
-    mark_free(g, n->page);
+	//BUG_ON(n->status != UPTODATE);
+	//printk(KERN_INFO "%s block=%lu\n", __func__,n->page);
+    
+	if(unlikely(n->status) != UPTODATE){
+		printk("1: ------FREE: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
+	}
+
+	while(n->status != UPTODATE){
+		asm volatile(
+		     "pause"
+		 );
+		mdelay(200);
+		//printk("VALUE:%d\n", n->status); 
+	}
+
+	utmemassert(n->page <= g->ssd_limit);
+	mark_free(g, n->page);
 }
 
 static int ssd_alloc_and_write(struct global_info *g, utmem_pampd *n)
 {
    
-   struct page *p = pfn_to_page(__pa(n->page) >> PAGE_SHIFT);
-   struct bio *bio;
-   unsigned block_offset;    
-   
-   BUG_ON(!p);
+	struct page *p = pfn_to_page(__pa(n->page) >> PAGE_SHIFT);
+	struct bio *bio;
+	unsigned block_offset;    
 
-   n->status = IO_IN_PROGRESS;
-   n->type = SSD;
-   atomic_inc(&g->pending_async_writes);
+	BUG_ON(!p);
 
-   lock_page(p);
-   bio = get_ssd_bio(GFP_KERNEL, p, end_ssd_bio_write, n);  
-   BUG_ON(!bio);
-   
-   block_offset = get_ssd_free_block(g);   
-   
-   n->page = block_offset; 
+	n->status = IO_IN_PROGRESS;
+	n->type = SSD;
+	atomic_inc(&g->pending_async_writes);
 
-   bio->bi_iter.bi_sector = (block_offset) << (PAGE_SHIFT - 9);
-   bio->bi_bdev = g->bdev;
+	lock_page(p);
+	bio = get_ssd_bio(GFP_KERNEL, p, end_ssd_bio_write, n);  
+	BUG_ON(!bio);
 
-   submit_bio(WRITE, bio);
+	block_offset = get_ssd_free_block(g);   
 
-   return 0;
+	n->page = block_offset; 
+
+	bio->bi_iter.bi_sector = (block_offset) << (PAGE_SHIFT - 9);
+	bio->bi_bdev = g->bdev;
+
+	submit_bio(WRITE, bio);
+
+	//printk("PUT-R: %lu \n", n->page); 
+
+
+	return 0;
    
 }
 
@@ -252,18 +267,17 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 	BUG_ON(!page);
 
 	if(unlikely(n->status) != UPTODATE){
-		printk("1: ------WAITING UPDATE IN SSD----- : %lu \n", n->page); 
+		printk("1: ------READ: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
 		//return -EBUSY;	
 		checker=true;
 	}
 
 	while(n->status != UPTODATE){
-		/*
-			TODO: IO on the way, Is there a better way to handle this? 
-		*/
 		asm volatile(
 		     "pause"
 		 );
+		//printk("VALUE:%d\n", n->status); 
+		mdelay(200);
 	}
 
 	if(unlikely(checker)){
@@ -290,6 +304,9 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 	if(unlikely(checker)){
 		printk("4: -----UPTODATE BIT %d----- \n", uptodate); 
 	}
+
+
+	//printk("GET-S: %lu \n", n->page); 
 	
 	if(uptodate)
 	   return 0;

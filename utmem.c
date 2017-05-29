@@ -1497,13 +1497,11 @@ int kthread_cache_cleanup(void *data)
 		
 		wait_event_interruptible(kthread1_wq, kthread1_flag);
 		kthread1_flag = false;
-		
 		evicted = 0;
 
 		if(global->mem_limit - MEM_MOVE_HT < atomic_read(&global->mem_used)){
 			if(atomic_inc_and_test(&global->evicting)){
 				evicted += utmem_evict_memory(global);
-				//printk("Kthread-1: Eviction started %d\n");
 			}
 			atomic_dec(&global->evicting);
 		}
@@ -1512,8 +1510,14 @@ int kthread_cache_cleanup(void *data)
 			evicted += utmem_evict_ssd(global);
 		}
 
-		/* Waiting for pending writes to terminate */
-		while(!atomic_read(&global->pending_async_writes));
+		
+		//if(atomic_read(&global->pending_async_writes))
+			//printk("Kthread-1: Waiting %d !\n", atomic_read(&global->pending_async_writes) );
+
+		while(atomic_read(&global->pending_async_writes))
+			;
+		
+		//printk("Kthread-1: FR, Sleep %d !\n",  atomic_read(&global->pending_async_writes) );
 
 		//printk("Kthread-1: Objects evicted/moved from MEM is %d\n", evicted);
 
