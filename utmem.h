@@ -61,7 +61,7 @@ typedef struct utmem_pampd{
         struct tmem_obj *tmem_obj;  
         struct list_head entry_list;
         u32 index;
-        u32 status:2,
+        volatile u32 status:2,
             type;
 }utmem_pampd;
 

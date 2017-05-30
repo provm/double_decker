@@ -1247,17 +1247,15 @@ out:
 		atomic_dec(&pool->ssd_uptodate);
 		atomic_dec(&pool->client->ssd_uptodate);
 
-		/*
 		if(
 			atomic_read(&global->mem_used) < (global->mem_limit - MEM_MOVE_LT) &&
 			atomic_read(&global->ssd_used) >= EVICT_BATCH
 		){
+			//printk("Condition matched !\n");
 			
 			kthread2_flag = true;
 			wake_up_interruptible(&kthread2_wq);		
 		}
-		*/
-			
 	}
 
         return ret;
@@ -1528,7 +1526,13 @@ int kthread_move_ssd_to_mem(void *data)
 	
 	while(!kthread_should_stop()){
 	
+		
+		//printk("Kthread-2: Waiting for request !\n");
+	
 		wait_event_interruptible(kthread2_wq, kthread2_flag);
+		kthread2_flag = false;
+
+		//printk("Kthread-2: New request !\n");
 		
 		moved = 0;
 		client = pick_underutilized_client(global);
@@ -1539,8 +1543,7 @@ int kthread_move_ssd_to_mem(void *data)
 				moved = tcache_move_ssd_to_mem(pool, EVICT_BATCH);
 		}
 	
-		printk("Kthread-2: Objects moved from SSD to MEM is %d\n", moved);
-		kthread2_flag = false;
+		//printk("Kthread-2: Objects moved from SSD to MEM is %d\n", moved);
 	}
 	
 	printk("Kthread-2: Terminated\n");
@@ -1571,7 +1574,7 @@ int utmem_init_module(void)
 	init_utmem(global);
 
 	kthread1 = kthread_run(&kthread_cache_cleanup, NULL, "cgtmem_cache_cleanup");
-	//kthread2 = kthread_run(&kthread_move_ssd_to_mem, NULL, "cgtmem_ssd_to_mem");
+	kthread2 = kthread_run(&kthread_move_ssd_to_mem, NULL, "cgtmem_ssd_to_mem");
 
 	printk("---------------------------------------CGTMEM INSERTED SUCESSFULLY ------------------------------------------!\n");
 
@@ -1596,9 +1599,9 @@ void utmem_cleanup_module(void)
 	wake_up_interruptible(&kthread1_wq);		
 	kthread_stop(kthread1);
 
-	//kthread2_flag = true;
-	//wake_up_interruptible(&kthread2_wq);		
-	//kthread_stop(kthread2);
+	kthread2_flag = true;
+	wake_up_interruptible(&kthread2_wq);		
+	kthread_stop(kthread2);
 	
 	printk("---------------------------------------CGTMEM REMOVED SUCESSFULLY ------------------------------------------!\n");
 }

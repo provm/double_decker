@@ -113,9 +113,8 @@ void end_ssd_bio_write(struct bio *bio, int err)
         unlock_page(page);
         __free_page(page);
 //        n->page = bio->bi_iter.bi_sector >> (PAGE_SHIFT - 9);
+//        wmb();
         n->status = UPTODATE;
-        wmb();
-        
 	atomic_dec(&n->tmem_obj->pool->client->g->pending_async_writes);
 	
 	atomic_inc(&n->tmem_obj->pool->ssd_uptodate); 
@@ -210,21 +209,22 @@ static void free_ssd_block(struct global_info *g, utmem_pampd *n)
 	/*
 		BUG_ON(n->status != UPTODATE);
 		printk(KERN_INFO "%s block=%lu\n", __func__,n->page);
-	*/
+	    
 		if(unlikely(n->status) != UPTODATE){
 			printk("1: ------FREE: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
 		}
+	*/
 
 	while(n->status != UPTODATE){
 		
-//		cond_resched();
-		
+		cond_resched();
+		/*
 			asm volatile(
 			     "pause"
 			 );
-		/*	mdelay(200);
-			printk("VALUE:%d\n", n->status); */
-		
+			mdelay(200);
+			printk("VALUE:%d\n", n->status); 
+		*/
 	}
 
 	utmemassert(n->page <= g->ssd_limit);
@@ -268,32 +268,33 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 {
 	struct bio *bio;
 	int uptodate;
-	bool checker=false;
+	//bool checker=false;
 
 	BUG_ON(!page);
 
-
-	if(unlikely(n->status) != UPTODATE){
-		printk("1: ------READ: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
-		//return -EBUSY;	
-		checker=true;
-	}
-
+	/*
+		if(unlikely(n->status) != UPTODATE){
+			printk("1: ------READ: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
+			//return -EBUSY;	
+			checker=true;
+		}
+	*/
 
 	while(n->status != UPTODATE){
-		//cond_resched();
+		cond_resched();
+		/*
 			asm volatile(
 			     "pause"
 			 );
-		/*
 			mdelay(200);
 			printk("VALUE:%d\n", n->status);
 		*/ 
 	}
 
+	/*
 	if(unlikely(checker)){
 		printk("2: ------TRYING TO LOCK PAGE----- \n"); 
-	}
+	}*/
 
 	lock_page(page);
 	bio = get_ssd_bio(GFP_KERNEL, page, end_ssd_bio_read, n);  
@@ -733,7 +734,7 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		}	
 		else if(unlikely(n->status == IO_IN_PROGRESS)){
 			spin_unlock(&ssd_ev->ev_lock); 
-			goto wakeup_and_failed;
+			continue;
 		}
 		
 		list_del(&n->entry_list); 	
@@ -761,23 +762,18 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 	
 wakeup_and_failed:
 
-	//printk("Tcache-Before: Moved:%d mem-used:%d ssd-used:%d\n", 0, atomic_read(&pool->mem_used), atomic_read(&pool->ssd_used));
-
-	atomic_sub(i, &pool->ssd_used);
 	atomic_sub(i, &client->ssd_used); 
 	atomic_sub(i, &client->g->ssd_used);
+	atomic_sub(i, &pool->ssd_used);
 	
 	atomic_sub(i, &pool->ssd_uptodate);
 	atomic_sub(i, &pool->client->ssd_uptodate);
 	
-	atomic_add(i, &pool->mem_used);
 	atomic_add(i, &client->mem_used);
 	atomic_add(i, &client->g->mem_used);
+	atomic_add(i, &pool->mem_used);
 
 	pool->move_ssd_to_mem += i;
-
-	//printk("Tcache-After: Moved:%d mem-used:%d ssd-used:%d\n", i, atomic_read(&pool->mem_used), atomic_read(&pool->ssd_used));
-
 	return i;
 }
 
