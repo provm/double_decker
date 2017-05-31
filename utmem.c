@@ -1100,6 +1100,33 @@ got_client:
    
 }
 
+inline void trigger_mem_to_ssd(void)
+{
+	
+	if(	
+		(global->mem_limit - MEM_MOVE_HT < atomic_read(&global->mem_used)) ||
+		(global->ssd_limit - SSD_MOVE_HT < atomic_read(&global->ssd_used)) 
+	){
+		kthread1_flag = true;
+		wake_up_interruptible(&kthread1_wq);		
+	}
+
+}
+
+inline void trigger_ssd_to_mem(void)
+{
+	//printk("mem_used: %d, mem_limit: %d, ssd_used: %d \n",atomic_read(&global->mem_used), global->mem_limit, atomic_read(&global->ssd_used) );
+
+	if(
+		global->mem_limit > 0 &&
+		atomic_read(&global->mem_used) < (global->mem_limit - MEM_MOVE_LT) &&
+		atomic_read(&global->ssd_used) >= EVICT_BATCH
+	){
+		kthread2_flag = true;
+		wake_up_interruptible(&kthread2_wq);		
+	}
+}
+
 /*
  *	Tmem put entry point
  */
@@ -1116,12 +1143,9 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
                 goto out;
         WARN_ON(client != pool->client);
 	
-	if(	(global->mem_limit - MEM_MOVE_HT < atomic_read(&global->mem_used)) ||
-		(global->ssd_limit - SSD_MOVE_HT < atomic_read(&global->ssd_used)) )
-	{
-		kthread1_flag = true;
-		wake_up_interruptible(&kthread1_wq);		
-	}
+	trigger_mem_to_ssd();
+	trigger_ssd_to_mem();
+	
 
 	// local_irq_save(flags);
 
@@ -1247,15 +1271,7 @@ out:
 		atomic_dec(&pool->ssd_uptodate);
 		atomic_dec(&pool->client->ssd_uptodate);
 
-		if(
-			atomic_read(&global->mem_used) < (global->mem_limit - MEM_MOVE_LT) &&
-			atomic_read(&global->ssd_used) >= EVICT_BATCH
-		){
-			//printk("Condition matched !\n");
-			
-			kthread2_flag = true;
-			wake_up_interruptible(&kthread2_wq);		
-		}
+		trigger_ssd_to_mem();
 	}
 
         return ret;

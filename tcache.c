@@ -7,72 +7,14 @@
 #include <linux/sched.h>
 #include <linux/bio.h>
 #include <linux/delay.h>
-
 #include "utmem.h"
 
-#define MIN_EVICT 64
-#define LIMIT_THRESH 256*16
-#define REALLY_OLD (120 * HZ)
-#define REALLY_RECENT (5 * HZ)
-#define EVICTION_TRIAL_BATCH 128
-
 #define SSD_NAME "/dev/sda1"
-
-#define EVICT_BATCH 256
-#define FREE_MEM_THRESH 200*256  // 200MB free
 
 static struct kmem_cache *utmem_pampd_cache;
 static struct kmem_cache *utmem_objnode_cache;
 static struct kmem_cache *utmem_obj_cache;
 
-//struct task_struct *utmem_eviction_thread;
-//wait_queue_head_t evict_wq;
-//bool start_evict = false;
-//static int utmem_eviction_kthread(void *);
-
-
-
-/*
-void create_utmem_client(struct zcache_client *cl)
-{
-
-   struct client_details *client;
-
-   int client_id = get_client_id_from_client(cl); 
-   BUG_ON(clients[client_id].client_id != -1);
-
-   client = &clients[client_id];
-   memset(client, 0 , sizeof(struct client_details));
-
-   atomic_set(&client->total_pages, 0);
-   atomic_set(&client->shared, 0);
-   atomic_set(&client->compressed, 0);
-   atomic_set(&client->plain_text, 0);
-   atomic_set(&client->num_tmem_objs, 0);
-
-   client->client_id = client_id;
-   client->pclient = cl;
-   client->create_time = jiffies;
-
-   if(omnipresent_new_vm)
-       omnipresent_new_vm(client);
-
-   printk(KERN_INFO "VM create called and done with id=%d\n",client_id);
-}
-void destroy_utmem_client(int client_id)
-{
-   struct client_details *client;
-   BUG_ON(clients[client_id].client_id == -1);
-
-   client = &clients[client_id];
-   
-   if(omnipresent_destroy_vm)
-       omnipresent_destroy_vm(client);
-   client->client_id = -1;
-   utmemassert(client->bmap == NULL);
-   printk(KERN_INFO "Destroy VM called and done\n");
-}
-*/
 
 static struct bio *get_ssd_bio(gfp_t gfp_flags,
 				struct page *page, bio_end_io_t end_io, void *private)
@@ -192,39 +134,33 @@ got_byte:
 
 static void mark_free(struct global_info *g, unsigned long block_no)
 {
-     u8 val = 1;
-     unsigned byte = block_no >> 3;
-     unsigned bit = block_no % 8;
-     u8 *bmap_ptr;
-     bmap_ptr = g->ssd_bmap + byte;
-     val <<= bit;
-//     printk(KERN_INFO "Freeing block no %lu byte = %d bit=%d\n", block_no, byte, bit);
-     utmemassert(((*bmap_ptr) & val) == val);
-     raw_spin_lock(&g->kvm_tmem_lock);  
-     *bmap_ptr = *bmap_ptr ^ val;
-     raw_spin_unlock(&g->kvm_tmem_lock); 
+	u8 *bmap_ptr;
+	u8 val = 1;
+	unsigned byte = block_no >> 3;
+	unsigned bit = block_no % 8;
+
+	//printk(KERN_INFO "1:-- Freeing block no %lu byte = %d bit=%d\n", block_no, byte, bit);
+
+	bmap_ptr = g->ssd_bmap + byte;
+	val <<= bit;
+	utmemassert(((*bmap_ptr) & val) == val);
+	raw_spin_lock(&g->kvm_tmem_lock);  
+	*bmap_ptr = *bmap_ptr ^ val;
+	raw_spin_unlock(&g->kvm_tmem_lock); 
 }
 
 static void free_ssd_block(struct global_info *g, utmem_pampd *n)
 {
 	/*
-		BUG_ON(n->status != UPTODATE);
-		printk(KERN_INFO "%s block=%lu\n", __func__,n->page);
-	*/
 		if(unlikely(n->status) != UPTODATE){
 			printk("1: ------FREE: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
 		}
+	*/
 
 	while(n->status != UPTODATE){
-		
-//		cond_resched();
-		
-			asm volatile(
-			     "pause"
-			 );
-		/*	mdelay(200);
-			printk("VALUE:%d\n", n->status); */
-		
+		asm volatile(
+		     "pause"
+		 );
 	}
 
 	utmemassert(n->page <= g->ssd_limit);
@@ -259,7 +195,6 @@ static int ssd_alloc_and_write(struct global_info *g, utmem_pampd *n)
 
 	//printk("PUT-R: %lu \n", n->page); 
 
-
 	return 0;
    
 }
@@ -268,32 +203,28 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 {
 	struct bio *bio;
 	int uptodate;
-	bool checker=false;
+	//bool checker=false;
 
 	BUG_ON(!page);
 
-
-	if(unlikely(n->status) != UPTODATE){
-		printk("1: ------READ: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
-		//return -EBUSY;	
-		checker=true;
-	}
-
-
+	/*
+		if(unlikely(n->status) != UPTODATE){
+			printk("1: ------READ: WAITING UPDATE IN SSD----- : %lu \n", n->page); 
+			checker=true;
+		}
+	*/
+	
 	while(n->status != UPTODATE){
-		//cond_resched();
-			asm volatile(
-			     "pause"
-			 );
-		/*
-			mdelay(200);
-			printk("VALUE:%d\n", n->status);
-		*/ 
+		asm volatile(
+		     "pause"
+		 );
 	}
 
-	if(unlikely(checker)){
-		printk("2: ------TRYING TO LOCK PAGE----- \n"); 
-	}
+	/*
+		if(unlikely(checker)){
+			printk("2: ------TRYING TO LOCK PAGE----- \n"); 
+		}
+	*/
 
 	lock_page(page);
 	bio = get_ssd_bio(GFP_KERNEL, page, end_ssd_bio_read, n);  
@@ -303,22 +234,12 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 	bio->bi_bdev = g->bdev;
 	submit_bio(READ_SYNC, bio);
 
-	/*
-	if(unlikely(checker)){
-		printk("3: ------WAITING FOR PAGE LOCKED----- \n"); 
-	}*/
-
 	wait_on_page_locked(page); 
 
 	uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
 	bio_put(bio);
 	mark_free(g, n->page);
 	
-	/*
-	if(unlikely(checker)){
-		printk("4: -----UPTODATE BIT %d----- \n", uptodate); 
-	}*/
-
 	//printk("GET-S: %lu \n", n->page); 
 	
 	if(uptodate)
@@ -381,13 +302,9 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
    n->tmem_obj = tmem_obj;
    n->index = index;
    
-   /*
-	Might have to change for eviction logic 
-   */
    if(is_ssd){
 	
 	ssd_alloc_and_write(client->g, n);
-	//n->type = SSD;
 
 	atomic_inc(&client->ssd_used); 
 	atomic_inc(&client->g->ssd_used);
@@ -478,7 +395,6 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	atomic_dec(&pool->mem_used);
 	
 	
-	/* TODO: Gapa from LIFO FIFO etc.. */
 	ev = pool->mem_eviction_info;
 	spin_lock(&ev->ev_lock); 
 	list_del(&n->entry_list);
@@ -529,7 +445,6 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 	atomic_dec(&client->g->mem_used);
 	atomic_dec(&pool->mem_used);
 	
-	/* TODO: Gapa from LIFO FIFO etc.. */
 	ev = pool->mem_eviction_info;
 	spin_lock(&ev->ev_lock); 
 	list_del(&n->entry_list);
@@ -716,8 +631,10 @@ wakeup_and_failed:
 int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 {
 	int i=0, ret=-1;
-	struct page *page;
+	
 	utmem_pampd *n = NULL; 	
+	
+	struct page *page;
 	struct tmem_client *client = pool->client;
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
 	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
@@ -749,10 +666,12 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		}
 		
 		ret = read_and_free_from_ssd(client->g, page, n);
-		BUG_ON(ret);
 		
 		n->type = MEMORY;
+		
+		//printk("1-");
 		n->page = (unsigned long) page_address(page);
+		//printk("2\n");
 		
 		spin_lock(&mem_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &mem_ev->head); 
