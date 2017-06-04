@@ -143,7 +143,9 @@ static void mark_free(struct global_info *g, unsigned long block_no)
 
 	bmap_ptr = g->ssd_bmap + byte;
 	val <<= bit;
+
 	utmemassert(((*bmap_ptr) & val) == val);
+
 	raw_spin_lock(&g->kvm_tmem_lock);  
 	*bmap_ptr = *bmap_ptr ^ val;
 	raw_spin_unlock(&g->kvm_tmem_lock); 
@@ -157,7 +159,7 @@ static void free_ssd_block(struct global_info *g, utmem_pampd *n)
 		}
 	*/
 
-	while(n->status != UPTODATE){
+	while(n->status == IO_IN_PROGRESS){
 		asm volatile(
 		     "pause"
 		 );
@@ -214,7 +216,7 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 		}
 	*/
 	
-	while(n->status != UPTODATE){
+	while(n->status == IO_IN_PROGRESS){
 		asm volatile(
 		     "pause"
 		 );
@@ -243,7 +245,7 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 	//printk("GET-S: %lu \n", n->page); 
 	
 	if(uptodate)
-	   return 0;
+		return 0;
 
 	return -EIO;
 } 
@@ -386,6 +388,14 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
  
    }
    else{
+
+	/* Data is being moved from ssd to mem */
+	while(n->status == MOVE_IN_PROGRESS){
+		asm volatile(
+		     "pause"
+		 );
+	}
+
 	dst = kmap_atomic(page);
 	memcpy(dst, (void *)n->page, PAGE_SIZE);
 	kunmap_atomic(dst);    
@@ -431,8 +441,6 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 	atomic_dec(&client->g->ssd_used);
 	atomic_dec(&pool->ssd_used);
 
-	
-	/* TODO: Gapa from LIFO FIFO etc.. */
 	ev = pool->ssd_eviction_info;
 	spin_lock(&ev->ev_lock); 
 	list_del(&n->entry_list);
@@ -440,6 +448,14 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
  
    }
    else{
+	
+	/* Data is being moved from ssd to mem */
+	while(n->status == MOVE_IN_PROGRESS){
+		asm volatile(
+		     "pause"
+		 );
+	}
+
 	free_page(n->page);
 	atomic_dec(&client->mem_used);
 	atomic_dec(&client->g->mem_used);
@@ -633,11 +649,14 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 	int i=0, ret=-1;
 	
 	utmem_pampd *n = NULL; 	
-	
+
 	struct page *page;
+	//struct tmem_hashbucket *hb;	
 	struct tmem_client *client = pool->client;
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
 	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
+
+	
 	
 	for(i=0; i<num_of_pages; i++){
 	
@@ -652,30 +671,34 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 			spin_unlock(&ssd_ev->ev_lock); 
 			goto wakeup_and_failed;
 		}
+
+		//hb = &pool->hashbucket[tmem_oid_hash(&n->tmem_obj->oid)];
+        	//spin_lock(&hb->lock);		
 		
 		list_del(&n->entry_list); 	
 		spin_unlock(&ssd_ev->ev_lock); 
 		
 		page = alloc_page(UTMEM_GFP_MASK);
-   		
-		if(!page){	
+		if(unlikely(!page)){	
 			spin_lock(&ssd_ev->ev_lock); 
 			list_add(&n->entry_list, &ssd_ev->head); 
 			spin_unlock(&ssd_ev->ev_lock); 
+			
 			goto wakeup_and_failed;
 		}
 		
-		ret = read_and_free_from_ssd(client->g, page, n);
-		
 		n->type = MEMORY;
+		n->status = MOVE_IN_PROGRESS;
 		
-		//printk("1-");
+		ret = read_and_free_from_ssd(client->g, page, n);
 		n->page = (unsigned long) page_address(page);
-		//printk("2\n");
 		
 		spin_lock(&mem_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &mem_ev->head); 
-		spin_unlock(&mem_ev->ev_lock); 
+		spin_unlock(&mem_ev->ev_lock);
+
+		n->status = UPTODATE;
+        	//spin_unlock(&hb->lock);		
 	}
 	
 wakeup_and_failed:

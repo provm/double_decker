@@ -531,10 +531,12 @@ static ssize_t pool_stats_show(struct kobject *kobj, struct kobj_attribute *attr
         if(!pool)
                return -EINVAL;
 
-        return sprintf(buf, "gets:%u sgets:%u puts:%u flushes:%u evicts:%u mem_to_ssd:%u, ssd_to_mem:%u\n", 
+        return sprintf(buf, "gets:%u sgets:%u puts:%u flushes:%u evicts:%u mem_to_ssd:%u, ssd_to_mem:%u ssd_uptodate:%u \n", 
 				pool->total_gets, pool->succ_gets, pool->succ_puts, 
 				pool->succ_flushes,pool->evicts,
-				pool->move_mem_to_ssd, pool->move_ssd_to_mem);
+				pool->move_mem_to_ssd, pool->move_ssd_to_mem,
+				atomic_read(&pool->ssd_uptodate)
+		);
 }
 static struct kobj_attribute pool_stats_attribute = __ATTR(stats,0444,pool_stats_show,NULL);
 
@@ -1177,11 +1179,11 @@ static struct tmem_client *pick_underutilized_client(struct global_info *g){
 	int i, count=0, current_max_underuse=0, new_underuse;
 
 	for(i=0; i<MAX_VMS && g->tmem_clients[i].id >= 0; ++i){
-		unsigned used;
 		client = &g->tmem_clients[i];
-		used = atomic_read(&client->mem_used);
 
-		if(client->mem_entitlement && atomic_read(&client->ssd_uptodate) > EVICT_BATCH){  
+		printk("CLIENT-%d: limit:%u, ssd_used:%u \n", i, client->mem_entitlement, atomic_read(&client->ssd_used));
+		
+		if(client->mem_entitlement && atomic_read(&client->ssd_used) > EVICT_BATCH){  
 		     cls[count++] = client;  
 		}
 	}
@@ -1201,7 +1203,7 @@ static struct tmem_client *pick_underutilized_client(struct global_info *g){
 	 	}
 	}
 
-	//printk("targetted client is: %d\n", client->id);
+	printk("targetted client is: %d\n", client->id);
 	return client;  
 }
 
@@ -1218,11 +1220,13 @@ static struct tmem_pool *pick_underutilized_pool(struct tmem_client *client){
 
 	for(i=0; i<MAX_POOLS_PER_CLIENT && client->pools[i]; ++i){
 	 
-		unsigned used;
+		//unsigned used;
 		pool = client->pools[i];
-		used = atomic_read(&pool->mem_used);
+		//used = atomic_read(&pool->mem_used);
+		
+		printk("POOL-%d: limit:%u, ssd_used:%u \n", i, pool->mem_entitlement, atomic_read(&pool->ssd_used));
 
-		if(pool->mem_entitlement && atomic_read(&pool->ssd_uptodate) > EVICT_BATCH){  
+		if(pool->mem_entitlement && atomic_read(&pool->ssd_used) > EVICT_BATCH){  
 			pools[count++] = pool;   		
 		}
 	}
@@ -1542,11 +1546,9 @@ int kthread_move_ssd_to_mem(void *data)
 	
 	while(!kthread_should_stop()){
 	
-		
 		//printk("Kthread-2: Waiting for request !\n");
 	
 		wait_event_interruptible(kthread2_wq, kthread2_flag);
-		kthread2_flag = false;
 
 		//printk("Kthread-2: New request !\n");
 		
@@ -1560,6 +1562,7 @@ int kthread_move_ssd_to_mem(void *data)
 		}
 	
 		//printk("Kthread-2: Objects moved from SSD to MEM is %d\n", moved);
+		kthread2_flag = false;
 	}
 	
 	printk("Kthread-2: Terminated\n");

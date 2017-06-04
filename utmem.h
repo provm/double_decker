@@ -48,6 +48,7 @@ struct global_info;
 
 enum{
           IO_IN_PROGRESS,
+          MOVE_IN_PROGRESS,
           UPTODATE
 };
 

@@ -642,7 +642,6 @@ int tmem_get(struct tmem_pool *pool, struct tmem_oid *oidp, uint32_t index,
         bool handled_already = false;
    #endif
 	hb = &pool->hashbucket[tmem_oid_hash(oidp)];
-
 	//printk("GET-1: %lu-%lu-%lu-%lu \n", oidp->oid[0], oidp->oid[1], oidp->oid[2], index);
 	spin_lock(&hb->lock);
 
