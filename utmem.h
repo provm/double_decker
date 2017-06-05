@@ -47,9 +47,9 @@
 struct global_info;
 
 enum{
+          UPTODATE,
           IO_IN_PROGRESS,
-          MOVE_IN_PROGRESS,
-          UPTODATE
+          MOVE_IN_PROGRESS
 };
 
 enum{

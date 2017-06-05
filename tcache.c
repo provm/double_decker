@@ -205,7 +205,7 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 {
 	struct bio *bio;
 	int uptodate;
-	//bool checker=false;
+	bool checker=false;
 
 	BUG_ON(!page);
 
@@ -215,6 +215,10 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 			checker=true;
 		}
 	*/
+		if(unlikely(n->status) == MOVE_IN_PROGRESS){
+			printk("A: ------MOVE IN PROGRESS----- : %lu STATUS:%d \n", n->page, n->status); 
+			checker=true;
+		}
 	
 	while(n->status == IO_IN_PROGRESS){
 		asm volatile(
@@ -222,6 +226,9 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 		 );
 	}
 
+		if(unlikely(checker)){
+			printk("B: ------NO WAIT----- : %lu \n", n->page); 
+		}
 	/*
 		if(unlikely(checker)){
 			printk("2: ------TRYING TO LOCK PAGE----- \n"); 
@@ -237,12 +244,19 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 	submit_bio(READ_SYNC, bio);
 
 	wait_on_page_locked(page); 
+		
+		if(unlikely(checker)){
+			printk("C: ------WAIITNG ON MARK FREE----- : %lu \n", n->page); 
+		}
 
 	uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
 	bio_put(bio);
 	mark_free(g, n->page);
 	
 	//printk("GET-S: %lu \n", n->page); 
+		if(unlikely(checker)){
+			printk("D: ------END READ----- : %lu STATUS:%d \n", n->page, n->status); 
+		}
 	
 	if(uptodate)
 		return 0;
@@ -321,6 +335,8 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
    else{
         
 	n->type = MEMORY;
+	n->status = UPTODATE;
+
         atomic_inc(&client->mem_used); 
         atomic_inc(&client->g->mem_used);
         atomic_inc(&pool->mem_used);
@@ -389,11 +405,22 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
    }
    else{
 
+	bool checker = false;	
+
 	/* Data is being moved from ssd to mem */
+	if(n->status == MOVE_IN_PROGRESS){
+		printk("a: ********** Waiting Index:%lu Status:%d ************\n", n->page, n->status);
+		checker = true;
+	}
+	
 	while(n->status == MOVE_IN_PROGRESS){
 		asm volatile(
-		     "pause"
-		 );
+			"pause"
+		);
+	}
+
+	if(unlikely(checker)){
+		printk("b: ********** Done waiting Index:%lu Status:%d ********\n", n->page, n->status);
 	}
 
 	dst = kmap_atomic(page);
@@ -403,7 +430,6 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	atomic_dec(&client->mem_used);
 	atomic_dec(&client->g->mem_used);
 	atomic_dec(&pool->mem_used);
-	
 	
 	ev = pool->mem_eviction_info;
 	spin_lock(&ev->ev_lock); 
@@ -449,13 +475,24 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
    }
    else{
 	
-	/* Data is being moved from ssd to mem */
+	bool checker = false;
+	
+	if(n->status == MOVE_IN_PROGRESS){
+		printk("a-2: Waiting Index:%u Status:%d, START\n", n->index, n->status);
+		checker = true;
+	}
+	
 	while(n->status == MOVE_IN_PROGRESS){
 		asm volatile(
-		     "pause"
-		 );
+			"pause"
+		);
 	}
 
+	if(unlikely(checker)){
+		printk("b-2: Done waiting Index:%u Status:%d, STOP\n", n->index, n->status);
+	}
+
+	
 	free_page(n->page);
 	atomic_dec(&client->mem_used);
 	atomic_dec(&client->g->mem_used);
@@ -648,15 +685,14 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 {
 	int i=0, ret=-1;
 	
-	utmem_pampd *n = NULL; 	
+	utmem_pampd *n = NULL; 
+	unsigned long old_index;	
 
 	struct page *page;
 	//struct tmem_hashbucket *hb;	
 	struct tmem_client *client = pool->client;
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
 	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
-
-	
 	
 	for(i=0; i<num_of_pages; i++){
 	
@@ -687,17 +723,25 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 			goto wakeup_and_failed;
 		}
 		
+		printk("1: Moving:%lu, Status:%d START\n", n->page, n->status);
+			
 		n->type = MEMORY;
 		n->status = MOVE_IN_PROGRESS;
 		
+		printk("2: Moving:%lu, Status:%d START\n", n->page, n->status);
+		
+		old_index = n->page;		
+
 		ret = read_and_free_from_ssd(client->g, page, n);
 		n->page = (unsigned long) page_address(page);
+		n->status = UPTODATE;
 		
 		spin_lock(&mem_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &mem_ev->head); 
 		spin_unlock(&mem_ev->ev_lock);
+		
+		printk("3: Moved:%lu to %lu, Status:%d STOP\n", old_index,  n->page, n->status);
 
-		n->status = UPTODATE;
         	//spin_unlock(&hb->lock);		
 	}
 	
