@@ -29,20 +29,17 @@
 
 #define DBG
 #ifdef DBG
-     #define utmemdp(x...) printk(KERN_INFO x);
-     #define utmemassert(x) do{ \
-                                if(unlikely(!(x))) \
-                                      printk(KERN_INFO "Assert failure %s %s:%d\n",__func__, __FILE__, __LINE__); \
-                           }while(0);
+#define utmemdp(x...) printk(KERN_INFO x);
+#define utmemassert(x) do{ \
+	if(unlikely(!(x))) \
+	printk(KERN_INFO "Assert failure %s %s:%d\n",__func__, __FILE__, __LINE__); \
+}while(0);
 #else
-     #define utmemassert(x) 
-     #define utmemdp(x...)
+#define utmemassert(x) 
+#define utmemdp(x...)
 #endif
 
 #define UTMEM_GFP_MASK  (__GFP_FS | __GFP_NORETRY | __GFP_NOWARN | __GFP_NOMEMALLOC)
-
-
-
 
 struct global_info;
 
@@ -55,72 +52,72 @@ enum{
 };
 
 enum{
-          MEMORY,
-          SSD
+	MEMORY,
+	SSD
 };
 
 typedef struct utmem_pampd{
-        unsigned long page;
-        struct tmem_obj *tmem_obj;  
-        struct list_head entry_list;
-        u32 index;
-        volatile u32 status:3,
-            type;
+	unsigned long page;
+	struct tmem_obj *tmem_obj;  
+	struct list_head entry_list;
+	u32 index;
+	volatile u32 status:3,
+		 type;
 }utmem_pampd;
 
 
 struct tmem_client{
-        int id;
-       	int mem_weight;
-       	int ssd_weight;
+	int id;
+	int mem_weight;
+	int ssd_weight;
 
-        struct global_info *g;
-        void *eviction_info;
-        
-        struct mm_struct *guest_mm;
-        struct tmem_pool *pools[MAX_POOLS_PER_CLIENT];
+	struct global_info *g;
+	void *eviction_info;
 
-        unsigned mem_entitlement;
-        unsigned ssd_entitlement;
+	struct mm_struct *guest_mm;
+	struct tmem_pool *pools[MAX_POOLS_PER_CLIENT];
 
-        unsigned long create_time;
-        struct kobject *client_kobj;
- 
-        long evictions;
-   
-        atomic_t num_tmem_objs;
-        atomic_t evicting;
-        atomic_t ssd_used;
-        atomic_t mem_used;
+	unsigned mem_entitlement;
+	unsigned ssd_entitlement;
+
+	unsigned long create_time;
+	struct kobject *client_kobj;
+
+	long evictions;
+
+	atomic_t num_tmem_objs;
+	atomic_t evicting;
+	atomic_t ssd_used;
+	atomic_t mem_used;
 	atomic_t ssd_uptodate;
 };
 
 
 struct global_info{
-         
-	 raw_spinlock_t kvm_tmem_lock;
-         
-         int current_num;
-	 struct tmem_client tmem_clients[MAX_VMS];
-         struct kobject *utmem_kobj;
-         
-	 atomic_t mem_used;
-         atomic_t ssd_used;
-         atomic_t evicting;
 
-         unsigned mem_limit;
-         unsigned ssd_limit;
+	raw_spinlock_t kvm_tmem_lock;
 
-         unsigned long gets;
-         unsigned long puts;
-         unsigned long flushes;
-	 //unsigned long mem_sgets;
+	int current_num;
+	struct tmem_client tmem_clients[MAX_VMS];
+	struct kobject *utmem_kobj;
 
-	 atomic_t pending_async_writes;
+	atomic_t mem_used;
+	atomic_t ssd_used;
+	atomic_t evicting;
 
-         struct block_device *bdev;
-         unsigned ssd_bmap_size;
-         void *ssd_bmap;
+	unsigned mem_limit;
+	unsigned ssd_limit;
+
+	unsigned long gets;
+	unsigned long puts;
+	unsigned long flushes;
+	//unsigned long mem_sgets;
+
+	atomic_t pending_async_writes;
+
+	struct block_device *bdev;
+	unsigned ssd_bmap_size;
+	void *ssd_bmap;
 };
 
 
@@ -131,12 +128,12 @@ struct eviction_info{
 
 static inline struct global_info * alloc_global(void)
 {
-  struct global_info *g = kzalloc(sizeof(struct global_info),GFP_KERNEL);
-  if(!g)
-              return g;
-  g->kvm_tmem_lock = __RAW_SPIN_LOCK_UNLOCKED(g->kvm_tmem_lock);
-  atomic_set(&g->evicting, -1);
-  return g;
+	struct global_info *g = kzalloc(sizeof(struct global_info),GFP_KERNEL);
+	if(!g)
+		return g;
+	g->kvm_tmem_lock = __RAW_SPIN_LOCK_UNLOCKED(g->kvm_tmem_lock);
+	atomic_set(&g->evicting, -1);
+	return g;
 }
 
 extern int init_utmem(struct global_info *);

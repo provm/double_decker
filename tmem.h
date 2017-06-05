@@ -16,7 +16,7 @@
 
 /*#define TMEM_PEPHEMERAL
 #ifdef TMEM_PEPHEMERAL
-     #define PEPH 1 
+#define PEPH 1 
 #endif*/
 /*
  * These are pre-defined by the Xen<->Linux ABI
@@ -96,7 +96,7 @@ static inline bool tmem_oid_valid(struct tmem_oid *oidp)
 }
 
 static inline int tmem_oid_compare(struct tmem_oid *left,
-					struct tmem_oid *right)
+		struct tmem_oid *right)
 {
 	int ret;
 
@@ -125,7 +125,7 @@ static inline int tmem_oid_compare(struct tmem_oid *left,
 static inline unsigned tmem_oid_hash(struct tmem_oid *oidp)
 {
 	return hash_long(oidp->oid[0] ^ oidp->oid[1] ^ oidp->oid[2],
-				TMEM_HASH_BUCKET_BITS);
+			TMEM_HASH_BUCKET_BITS);
 }
 
 /*
@@ -156,40 +156,40 @@ struct tmem_obj {
 struct tmem_pool {
 	struct list_head pool_list;
 	uint32_t pool_id;
-	
+
 	bool persistent;
 	bool shared;
-        //bool ssd;
-        
+	//bool ssd;
+
 	int mem_weight;
 	int ssd_weight;
-        
-        unsigned mem_entitlement; 
-        unsigned ssd_entitlement; 
-        
+
+	unsigned mem_entitlement; 
+	unsigned ssd_entitlement; 
+
 	struct kobject *pool_kobj;
- 
+
 	atomic_t obj_count;
 	atomic_t refcount;
-        atomic_t mem_used;
-        atomic_t ssd_used;
-        atomic_t evicting;
+	atomic_t mem_used;
+	atomic_t ssd_used;
+	atomic_t evicting;
 	atomic_t ssd_uptodate;
 
-        unsigned succ_puts;
-        unsigned succ_gets;
-        unsigned total_gets;
-        unsigned succ_flushes;
-        unsigned evicts;
+	unsigned succ_puts;
+	unsigned succ_gets;
+	unsigned total_gets;
+	unsigned succ_flushes;
+	unsigned evicts;
 	unsigned move_mem_to_ssd;
 	unsigned move_ssd_to_mem;
-	
+
 	/* "up" for some clients, avoids table lookup */
 	struct tmem_client *client;	
 
-        void *mem_eviction_info;
-        void *ssd_eviction_info;
-	
+	void *mem_eviction_info;
+	void *ssd_eviction_info;
+
 	struct tmem_hashbucket hashbucket[TMEM_HASH_BUCKETS];
 	DECL_SENTINEL
 };
@@ -199,12 +199,12 @@ struct tmem_pool {
 #define OBJNODE_TREE_MAP_MASK (OBJNODE_TREE_MAP_SIZE-1)
 #define OBJNODE_TREE_INDEX_BITS (8 /* CHAR_BIT */ * sizeof(unsigned long))
 #define OBJNODE_TREE_MAX_PATH \
-		(OBJNODE_TREE_INDEX_BITS/OBJNODE_TREE_MAP_SHIFT + 2)
+	(OBJNODE_TREE_INDEX_BITS/OBJNODE_TREE_MAP_SHIFT + 2)
 
 struct tmem_objnode {
 	struct tmem_obj *obj;
 	DECL_SENTINEL
-	void *slots[OBJNODE_TREE_MAP_SIZE];
+		void *slots[OBJNODE_TREE_MAP_SIZE];
 	unsigned int slots_in_use;
 };
 
@@ -213,26 +213,26 @@ struct tmem_pamops {
 	void *(*create)(char *, size_t, bool, int,
 			struct tmem_pool *, struct tmem_oid *, uint32_t, void *, bool);
 	int (*get_data)(char *, size_t *, bool, void *, struct tmem_pool *,
-				struct tmem_oid *, uint32_t);
+			struct tmem_oid *, uint32_t);
 	int (*get_data_and_free)(char *, size_t *, bool, void *,
-				struct tmem_pool *, struct tmem_oid *,
-				uint32_t);
+			struct tmem_pool *, struct tmem_oid *,
+			uint32_t);
 	void (*free)(void *, struct tmem_pool *, struct tmem_oid *, uint32_t);
 	void (*free_obj)(struct tmem_pool *, struct tmem_obj *);
 	bool (*is_remote)(void *);
 	void (*new_obj)(struct tmem_obj *);
 	int (*replace_in_obj)(void *, struct tmem_obj *);
-        #ifdef TMEM_PEPHEMERAL
+#ifdef TMEM_PEPHEMERAL
 	/*
-		Does this mean ephermal ?
-	*/
+	   Does this mean ephermal ?
+	 */
 	int (*pephemeral_get)(char *, size_t *, bool, void *,
-				struct tmem_pool *, struct tmem_oid *,
-				uint32_t);
+			struct tmem_pool *, struct tmem_oid *,
+			uint32_t);
 	void *(*pephemeral_create)(void *, char *, size_t, bool, int,
 			struct tmem_pool *, struct tmem_oid *, uint32_t, void *, bool);
-        
-        #endif
+
+#endif
 };
 extern void tmem_register_pamops(struct tmem_pamops *m);
 
@@ -247,13 +247,13 @@ extern void tmem_register_hostops(struct tmem_hostops *m);
 
 /* core tmem accessor functions */
 extern int tmem_put(struct tmem_pool *, struct tmem_oid *, uint32_t index,
-			char *, size_t, bool, bool, bool);
+		char *, size_t, bool, bool, bool);
 extern int tmem_get(struct tmem_pool *, struct tmem_oid *, uint32_t index,
-			char *, size_t *, bool, int);
+		char *, size_t *, bool, int);
 extern int tmem_replace(struct tmem_pool *, struct tmem_oid *, uint32_t index,
-			void *);
+		void *);
 extern int tmem_flush_page(struct tmem_pool *, struct tmem_oid *,
-			uint32_t index);
+		uint32_t index);
 extern int tmem_flush_object(struct tmem_pool *, struct tmem_oid *);
 extern int tmem_destroy_pool(struct tmem_pool *);
 extern void tmem_new_pool(struct tmem_pool *, uint32_t);
