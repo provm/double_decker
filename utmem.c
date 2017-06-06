@@ -90,6 +90,7 @@ static ssize_t utmem_ssd_limit_set(struct kobject *kobj,
 
 	global->ssd_limit = mode;
 	global->ssd_bmap_size = (mode >> 3);
+	readjust_client_entitlements(global);
 
 	return count;
 }

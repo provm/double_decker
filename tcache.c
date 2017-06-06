@@ -199,11 +199,10 @@ static int read_and_free_from_ssd(struct global_info *g, struct page *page, utme
 {
 	struct bio *bio;
 	int uptodate;
-	//bool checker=false;
 
 	BUG_ON(!page);
 
-	while(n->status == IO_IN_PROGRESS){
+	while(unlikely(n->status == IO_IN_PROGRESS)){
 		asm volatile(
 				"pause"
 			    );
@@ -262,7 +261,7 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
 	 */ 
 
 	page = (void *)__get_free_page(UTMEM_GFP_MASK);
-	if(!page)
+	if(unlikely(!page))
 		goto wakeup_and_failed;
 
 	src = kmap_atomic(spage);
@@ -273,7 +272,7 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
 	kunmap_atomic(src);    
 
 	n = kmem_cache_alloc(utmem_pampd_cache, UTMEM_GFP_MASK);
-	if(!n){
+	if(unlikely(!n)){
 		free_page((unsigned long) page);
 		goto wakeup_and_failed;
 	}
@@ -311,15 +310,15 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
 		spin_unlock(&ev->ev_lock); 
 	}
 
-
-
 	/*  TD
 	    if(atomic_read(&client->total_pages) + LIMIT_THRESH >= client->bmap->limit
 	    || utmem_mem_thresh <= nr_free_pages() || atomic_read(&total_used) + LIMIT_THRESH >= max_global_limit)
 	    start_evict = true; 
 	    if(start_evict) 
 	    wake_up(&evict_wq);*/
+	
 	return n;
+
 wakeup_and_failed:
 	return NULL;
 }   
@@ -357,7 +356,7 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	tmem = (struct tmem_obj *)n->tmem_obj;
 
 	/* Data is being moved from ssd to mem */
-	while(n->status == MOVE_IN_PROGRESS){
+	while(unlikely(n->status == MOVE_IN_PROGRESS)){
 		asm volatile(
 				"pause"
 			    );
@@ -417,7 +416,7 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 #endif
 	BUG_ON(!n);
 
-	while(n->status == MOVE_IN_PROGRESS){
+	while(unlikely(n->status == MOVE_IN_PROGRESS)){
 		asm volatile(
 				"pause"
 			    );
@@ -646,7 +645,7 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		spin_lock(&ssd_ev->ev_lock);
 		n = list_first_entry(&ssd_ev->head, struct utmem_pampd, entry_list);
 
-		if(n->status == GET_IN_PROGRESS || n->status == FLUSH_IN_PROGRESS){
+		if(unlikely(n->status == GET_IN_PROGRESS || n->status == FLUSH_IN_PROGRESS)){
 			spin_unlock(&ssd_ev->ev_lock);
 			//printk("GET(3)/FLUSH(4) in progress, STATUS:%d\n", n->status);
 			goto wakeup_and_failed; 
