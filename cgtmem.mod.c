@@ -63,7 +63,6 @@ __attribute__((section("__versions"))) = {
 	{ 0x93fca811, __VMLINUX_SYMBOL_STR(__get_free_pages) },
 	{ 0xdb7305a1, __VMLINUX_SYMBOL_STR(__stack_chk_fail) },
 	{ 0x1000e51, __VMLINUX_SYMBOL_STR(schedule) },
-	{ 0x63db7751, __VMLINUX_SYMBOL_STR(pv_cpu_ops) },
 	{ 0xbc4817b9, __VMLINUX_SYMBOL_STR(wake_up_process) },
 	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
 	{ 0xc56dd881, __VMLINUX_SYMBOL_STR(kmem_cache_alloc_trace) },
@@ -88,4 +87,4 @@ __attribute__((section(".modinfo"))) =
 "depends=kvm";
 
 
-MODULE_INFO(srcversion, "EF3954C62BFBA59319AF5F0");
+MODULE_INFO(srcversion, "CD44D42405207ABC347EEE0");

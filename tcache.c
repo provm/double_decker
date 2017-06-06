@@ -82,7 +82,7 @@ void end_ssd_bio_read(struct bio *bio, int err)
 	unlock_page(page);
 
 }
-
+/*
 static unsigned long get_ssd_free_block(struct global_info *g)
 {
 	bool final = false;
@@ -106,9 +106,6 @@ check:
 	while((void *)bmap_ptr < g->ssd_bmap + g->ssd_bmap_size && *bmap_ptr == 0xff)
 		bmap_ptr++;
 
-	/*
-	   ERROR ? 
-	 */ 
 	if((void *)bmap_ptr >=  g->ssd_bmap + g->ssd_bmap_size){
 		bmap_ptr = g->ssd_bmap;
 		BUG_ON(final);
@@ -129,6 +126,62 @@ got_byte:
 	*bmap_ptr = (*bmap_ptr) ^ val;
 	raw_spin_unlock(&g->kvm_tmem_lock); 
 	return ((byte_position << 3) + bit);
+}
+*/
+static unsigned long get_ssd_free_block(struct global_info *g)
+{
+	u8 *bmap_ptr;
+	unsigned byte_position;
+	u8 bit=0, next_bit, val;
+
+	raw_spin_lock(&g->kvm_tmem_lock);  
+	bmap_ptr = g->ssd_bmap + (g->last_used_byte % g->ssd_bmap_size);
+
+check:
+
+	byte_position = (void *)bmap_ptr - g->ssd_bmap;
+
+	if(likely(*bmap_ptr != 0xff))
+		goto got_byte;
+	
+	//bmap_ptr++;
+
+	/* Checking if current byte has free bits, if not increament */
+	while((void *)bmap_ptr < g->ssd_bmap + g->ssd_bmap_size && *bmap_ptr == 0xff)
+		bmap_ptr++;
+
+	/* Reached end of bit map, reinitialize to start */
+	if((void *)bmap_ptr >=  g->ssd_bmap + g->ssd_bmap_size){
+		bmap_ptr = g->ssd_bmap;
+	} 
+	goto check; 
+
+got_byte:
+
+	val = *bmap_ptr;
+	utmemassert(val != 0xff);
+	
+	next_bit = (g->last_used_bit+1) % 8;
+
+	bit += next_bit;
+	val >>= next_bit; 
+
+	while(val & 1){
+		++bit;
+		val >>= 1;
+	}  
+	val = 1 << bit;
+
+	utmemassert((*bmap_ptr & val) == 0);
+	*bmap_ptr = (*bmap_ptr) ^ val;
+
+	g->last_used_byte = byte_position;
+	g->last_used_bit = bit; 
+	raw_spin_unlock(&g->kvm_tmem_lock); 
+	
+	printk("Next-Bit:%u, Byte:%u, Bit:%u, Block:%lu\n", next_bit, byte_position, bit, ((byte_position << 3) + bit));
+
+	return ((byte_position << 3) + bit);
 
 }
 
@@ -142,7 +195,7 @@ static void mark_free(struct global_info *g, unsigned long block_no)
 	bmap_ptr = g->ssd_bmap + byte;
 	val <<= bit;
 
-	//printk(KERN_INFO "Freeing block no %lu, byte = %u, bit=%u, bmap_ptr=%d, val=%d \n", block_no, byte, bit, *bmap_ptr, val);
+	printk("FREE: %lu\n", block_no);
 
 	utmemassert(((*bmap_ptr) & val) == val);
 
@@ -180,7 +233,8 @@ static int ssd_alloc_and_write(struct global_info *g, utmem_pampd *n)
 	bio = get_ssd_bio(GFP_KERNEL, p, end_ssd_bio_write, n);  
 	BUG_ON(!bio);
 
-	block_offset = get_ssd_free_block(g);   
+	block_offset = get_ssd_free_block(g);  
+	//printk("ALLOC: %lu\n", block_offset); 
 
 	n->page = block_offset; 
 

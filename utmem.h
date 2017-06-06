@@ -118,6 +118,8 @@ struct global_info{
 	struct block_device *bdev;
 	unsigned ssd_bmap_size;
 	void *ssd_bmap;
+	unsigned last_used_byte;
+	u8 last_used_bit;
 };
 
 
