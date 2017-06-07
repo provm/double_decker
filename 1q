@@ -535,7 +535,7 @@ static ssize_t pool_stats_show(struct kobject *kobj, struct kobj_attribute *attr
 	return sprintf(buf, "gets:%u sgets:%u puts:%u flushes:%u evicts:%u mem_to_ssd:%u, ssd_to_mem:%u \n", 
 			pool->total_gets, pool->succ_gets, pool->succ_puts, 
 			pool->succ_flushes,pool->evicts,
-			pool->move_mem_to_ssd, pool->move_ssd_to_mem
+			pool->move_mem_to_ssd, pool->move_ssd_to_mem,
 			//atomic_read(&pool->ssd_uptodate)
 		      );
 }
@@ -1147,7 +1147,7 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
 	WARN_ON(client != pool->client);
 
 	trigger_mem_to_ssd();
-	//trigger_ssd_to_mem();
+	trigger_ssd_to_mem();
 
 
 	// local_irq_save(flags);

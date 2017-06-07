@@ -60,8 +60,8 @@ void end_ssd_bio_write(struct bio *bio, int err)
 
 	atomic_dec(&n->tmem_obj->pool->client->g->pending_async_writes);
 
-	atomic_inc(&n->tmem_obj->pool->ssd_uptodate); 
-	atomic_inc(&n->tmem_obj->pool->client->ssd_uptodate); 
+	//atomic_inc(&n->tmem_obj->pool->ssd_uptodate); 
+	//atomic_inc(&n->tmem_obj->pool->client->ssd_uptodate); 
 
 	bio_put(bio);
 
@@ -132,10 +132,10 @@ static unsigned long get_ssd_free_block(struct global_info *g)
 {
 	u8 *bmap_ptr;
 	unsigned byte_position;
-	u8 bit=0, next_bit, val;
+	u8 bit=0, val;
 
 	raw_spin_lock(&g->kvm_tmem_lock);  
-	bmap_ptr = g->ssd_bmap + (g->last_used_byte % g->ssd_bmap_size);
+	bmap_ptr = g->ssd_bmap + (g->next_byte % g->ssd_bmap_size);
 
 check:
 
@@ -161,10 +161,10 @@ got_byte:
 	val = *bmap_ptr;
 	utmemassert(val != 0xff);
 	
-	next_bit = (g->last_used_bit+1) % 8;
+	//next_bit = (g->last_used_bit+1) % 8;
 
-	bit += next_bit;
-	val >>= next_bit; 
+	bit += g->next_bit;
+	val >>= g->next_bit; 
 
 	while(val & 1){
 		++bit;
@@ -175,11 +175,15 @@ got_byte:
 	utmemassert((*bmap_ptr & val) == 0);
 	*bmap_ptr = (*bmap_ptr) ^ val;
 
-	g->last_used_byte = byte_position;
-	g->last_used_bit = bit; 
+	g->next_byte = byte_position;
+	g->next_bit = (bit+1) % 8;
+
+	if(g->next_bit==0)
+		g->next_byte++;
+ 
 	raw_spin_unlock(&g->kvm_tmem_lock); 
 	
-	printk("Next-Bit:%u, Byte:%u, Bit:%u, Block:%lu\n", next_bit, byte_position, bit, ((byte_position << 3) + bit));
+	//printk("Next-Bit:%u, Byte:%u, Bit:%u, Block:%lu\n", g->next_bit, byte_position, bit, ((byte_position << 3) + bit));
 
 	return ((byte_position << 3) + bit);
 
@@ -195,7 +199,7 @@ static void mark_free(struct global_info *g, unsigned long block_no)
 	bmap_ptr = g->ssd_bmap + byte;
 	val <<= bit;
 
-	printk("FREE: %lu\n", block_no);
+	//printk("FREE: %lu\n", block_no);
 
 	utmemassert(((*bmap_ptr) & val) == val);
 
@@ -754,8 +758,8 @@ wakeup_and_failed:
 	atomic_sub(i, &client->ssd_used); 
 	atomic_sub(i, &client->g->ssd_used);
 
-	atomic_sub(i, &pool->ssd_uptodate);
-	atomic_sub(i, &pool->client->ssd_uptodate);
+	//atomic_sub(i, &pool->ssd_uptodate);
+	//atomic_sub(i, &pool->client->ssd_uptodate);
 
 	atomic_add(i, &pool->mem_used);
 	atomic_add(i, &client->mem_used);

@@ -174,7 +174,7 @@ struct tmem_pool {
 	atomic_t mem_used;
 	atomic_t ssd_used;
 	atomic_t evicting;
-	atomic_t ssd_uptodate;
+	//atomic_t ssd_uptodate;
 
 	unsigned succ_puts;
 	unsigned succ_gets;

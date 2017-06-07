@@ -89,7 +89,7 @@ struct tmem_client{
 	atomic_t evicting;
 	atomic_t ssd_used;
 	atomic_t mem_used;
-	//atomic_t ssd_uptodate;
+	atomic_t ssd_uptodate;
 };
 
 
@@ -118,7 +118,6 @@ struct global_info{
 	struct block_device *bdev;
 	unsigned ssd_bmap_size;
 	void *ssd_bmap;
-
 	unsigned next_byte;
 	u8 next_bit;
 };
