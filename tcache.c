@@ -432,7 +432,8 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 		spin_lock(&ev->ev_lock); 
 		list_del(&n->entry_list);
 		spin_unlock(&ev->ev_lock);
-
+		
+		pool->ssd_gets++;
 	}
 	else{
 		dst = kmap_atomic(page);
@@ -448,7 +449,7 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 		list_del(&n->entry_list);
 		spin_unlock(&ev->ev_lock);
 
-		//client->g->mem_sgets++;
+		pool->mem_gets++;
 
 		ret = 0;
 	}
@@ -491,7 +492,8 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 		spin_lock(&ev->ev_lock); 
 		list_del(&n->entry_list);
 		spin_unlock(&ev->ev_lock);
-
+		
+		pool->ssd_flushes++;
 	}
 	else{
 		free_page(n->page);
@@ -502,7 +504,9 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 		ev = pool->mem_eviction_info;
 		spin_lock(&ev->ev_lock); 
 		list_del(&n->entry_list);
-		spin_unlock(&ev->ev_lock);	
+		spin_unlock(&ev->ev_lock);
+
+		pool->mem_flushes++;	
 	}
 
 	kmem_cache_free(utmem_pampd_cache, n);

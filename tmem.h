@@ -171,20 +171,31 @@ struct tmem_pool {
 
 	atomic_t obj_count;
 	atomic_t refcount;
+	
 	atomic_t mem_used;
 	atomic_t ssd_used;
+	
 	atomic_t evicting;
 	//atomic_t ssd_uptodate;
+	
+	unsigned get_requests;
 
-	unsigned succ_puts;
-	unsigned succ_gets;
-	unsigned total_gets;
-	unsigned succ_flushes;
-	unsigned evicts;
+	unsigned mem_puts;
+	unsigned ssd_puts;
+
+	unsigned mem_gets;
+	unsigned ssd_gets;
+
+	unsigned mem_flushes;
+	unsigned ssd_flushes;
+
+	unsigned mem_evicts;
+	unsigned ssd_evicts;
+	
 	unsigned move_mem_to_ssd;
 	unsigned move_ssd_to_mem;
 
-	/* "up" for some clients, avoids table lookup */
+	//"up" for some clients, avoids table lookup
 	struct tmem_client *client;	
 
 	void *mem_eviction_info;
