@@ -130,6 +130,7 @@ got_byte:
 */
 static unsigned long get_ssd_free_block(struct global_info *g)
 {
+	bool next_free = true;
 	u8 *bmap_ptr;
 	unsigned byte_position;
 	u8 bit=0, val;
@@ -144,12 +145,15 @@ check:
 	if(likely(*bmap_ptr != 0xff))
 		goto got_byte;
 	
+	next_free = false;
 	//bmap_ptr++;
 
 	/* Checking if current byte has free bits, if not increament */
-	while((void *)bmap_ptr < g->ssd_bmap + g->ssd_bmap_size && *bmap_ptr == 0xff)
+	while((void *)bmap_ptr < g->ssd_bmap + g->ssd_bmap_size && *bmap_ptr == 0xff){
+		//printk("%u < %u + %u, VALUE-AT-MAP:%u \n",  (void *)bmap_ptr, g->ssd_bmap, g->ssd_bmap_size, *bmap_ptr);
 		bmap_ptr++;
-
+	}
+	
 	/* Reached end of bit map, reinitialize to start */
 	if((void *)bmap_ptr >=  g->ssd_bmap + g->ssd_bmap_size){
 		bmap_ptr = g->ssd_bmap;
@@ -163,9 +167,11 @@ got_byte:
 	
 	//next_bit = (g->last_used_bit+1) % 8;
 
-	bit += g->next_bit;
-	val >>= g->next_bit; 
-
+	if(next_free){
+		bit += g->next_bit;
+		val >>= g->next_bit; 
+	}
+	
 	while(val & 1){
 		++bit;
 		val >>= 1;
@@ -343,29 +349,32 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
 
 		ssd_alloc_and_write(client->g, n);
 
-		atomic_inc(&client->ssd_used); 
-		atomic_inc(&client->g->ssd_used);
-		atomic_inc(&pool->ssd_used);
-
 		ev = pool->ssd_eviction_info;	
 		spin_lock(&ev->ev_lock); 
 		list_add_tail(&n->entry_list, &ev->head); 
 		spin_unlock(&ev->ev_lock); 
+		
+		atomic_inc(&client->ssd_used); 
+		atomic_inc(&client->g->ssd_used);
+		atomic_inc(&pool->ssd_used);
 
+		pool->ssd_puts++;
 	}
 	else{
 
 		n->type = MEMORY;
 		n->status = UPTODATE;
 
-		atomic_inc(&client->mem_used); 
-		atomic_inc(&client->g->mem_used);
-		atomic_inc(&pool->mem_used);
-
 		ev = pool->mem_eviction_info;
 		spin_lock(&ev->ev_lock); 
 		list_add_tail(&n->entry_list, &ev->head); 
 		spin_unlock(&ev->ev_lock); 
+
+		atomic_inc(&client->mem_used); 
+		atomic_inc(&client->g->mem_used);
+		atomic_inc(&pool->mem_used);
+
+		pool->mem_puts++;
 	}
 
 	/*  TD
@@ -423,16 +432,16 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 
 	if(n->type == SSD){		
 		ret = read_and_free_from_ssd(client->g, page, n);
-		atomic_dec(&client->ssd_used);
-		atomic_dec(&client->g->ssd_used);
-		atomic_dec(&pool->ssd_used);
-
-		/* TD: Gapa from LIFO FIFO etc.. */
+		
 		ev = pool->ssd_eviction_info;
 		spin_lock(&ev->ev_lock); 
 		list_del(&n->entry_list);
 		spin_unlock(&ev->ev_lock);
 		
+		atomic_dec(&client->ssd_used);
+		atomic_dec(&client->g->ssd_used);
+		atomic_dec(&pool->ssd_used);
+
 		pool->ssd_gets++;
 	}
 	else{
@@ -440,19 +449,21 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 		memcpy(dst, (void *)n->page, PAGE_SIZE);
 		kunmap_atomic(dst);    
 		free_page(n->page);
-		atomic_dec(&client->mem_used);
-		atomic_dec(&client->g->mem_used);
-		atomic_dec(&pool->mem_used);
 
 		ev = pool->mem_eviction_info;
 		spin_lock(&ev->ev_lock); 
 		list_del(&n->entry_list);
 		spin_unlock(&ev->ev_lock);
+		
+		atomic_dec(&client->mem_used);
+		atomic_dec(&client->g->mem_used);
+		atomic_dec(&pool->mem_used);
 
 		pool->mem_gets++;
 
-		ret = 0;
 	}
+	
+	ret = 0;
 
 	kmem_cache_free(utmem_pampd_cache, n);
 	return ret;
