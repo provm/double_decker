@@ -82,6 +82,91 @@ void end_ssd_bio_read(struct bio *bio, int err)
 	unlock_page(page);
 
 }
+static unsigned long get_ssd_free_block(struct global_info *g)
+{
+	u8 *bmap_ptr;
+	unsigned ins_byte_position;
+	u8 ins_bit, val;
+
+	raw_spin_lock(&g->kvm_tmem_lock);  
+
+	ins_byte_position = g->next_byte;
+	ins_bit = g->next_bit;	
+
+	bmap_ptr = g->ssd_bmap + ins_byte_position;
+	
+	val = *bmap_ptr;
+	utmemassert(val != 0xff);
+	val >>= ins_bit; 
+	val = 1 << ins_bit;
+	
+	utmemassert((*bmap_ptr & val) == 0);
+	*bmap_ptr = (*bmap_ptr) ^ val;
+	
+	g->next_bit = (ins_bit+1) % 8;
+	if(g->next_bit==0){
+		g->next_byte++;
+	}
+
+	bmap_ptr = g->ssd_bmap + g->next_byte;
+	
+	if(unlikely((void *)bmap_ptr >=  g->ssd_bmap + g->ssd_bmap_size)){
+		//printk("\tReached end of map-1\n");
+		bmap_ptr = g->ssd_bmap;
+		g->next_bit = 0;
+	} 
+check:
+	g->next_byte = (void *)bmap_ptr - g->ssd_bmap;
+
+	if(likely(*bmap_ptr != 0xff))
+		goto got_byte;
+	
+	g->next_bit = 0;	
+	bmap_ptr++;
+	g->next_byte++;
+
+	/* Checking if current byte has free bits, if not increament */
+	while((void *)bmap_ptr < g->ssd_bmap + g->ssd_bmap_size && *bmap_ptr == 0xff){
+		//printk("\t%u < %u, VALUE-AT-MAP:%u, @BLOCK:%u \n",  (void *)bmap_ptr, g->ssd_bmap + g->ssd_bmap_size, *bmap_ptr, (g->next_byte<<3) + g->next_bit);
+		bmap_ptr++;
+		g->next_byte++;
+	}
+	//printk("\t%u < %u, VALUE-AT-MAP:%u, @BLOCK:%u \n",  (void *)bmap_ptr, g->ssd_bmap + g->ssd_bmap_size, *bmap_ptr, (g->next_byte<<3) + g->next_bit);
+	
+	/* Reached end of bit map, reinitialize to start */
+	if((void *)bmap_ptr >=  g->ssd_bmap + g->ssd_bmap_size){
+		//printk("\tReached end of map-2\n");
+		bmap_ptr = g->ssd_bmap;
+	} 
+	goto check; 
+
+got_byte:
+
+	val = *bmap_ptr;
+	utmemassert(val != 0xff);
+	
+	val >>= g->next_bit; 
+	
+	while(val & 1){
+		g->next_bit++;
+
+		if(unlikely(g->next_bit==8)){
+			g->next_bit = 0;
+			bmap_ptr++;
+			goto check;
+		}
+
+		val >>= 1;
+	}  
+
+	raw_spin_unlock(&g->kvm_tmem_lock); 
+	
+	//printk("INS-BLOCK:%u, NEXT-BLOCK:%u\n", ((ins_byte_position << 3) + ins_bit), ((g->next_byte << 3) + g->next_bit));
+	//printk("Bit:%u, Block:%lu\n", g->next_bit, g->next_byte);
+
+	return ((ins_byte_position << 3) + ins_bit);
+
+}
 /*
 static unsigned long get_ssd_free_block(struct global_info *g)
 {
@@ -128,72 +213,6 @@ got_byte:
 	return ((byte_position << 3) + bit);
 }
 */
-static unsigned long get_ssd_free_block(struct global_info *g)
-{
-	bool next_free = true;
-	u8 *bmap_ptr;
-	unsigned byte_position;
-	u8 bit=0, val;
-
-	raw_spin_lock(&g->kvm_tmem_lock);  
-	bmap_ptr = g->ssd_bmap + (g->next_byte % g->ssd_bmap_size);
-
-check:
-
-	byte_position = (void *)bmap_ptr - g->ssd_bmap;
-
-	if(likely(*bmap_ptr != 0xff))
-		goto got_byte;
-	
-	next_free = false;
-	//bmap_ptr++;
-
-	/* Checking if current byte has free bits, if not increament */
-	while((void *)bmap_ptr < g->ssd_bmap + g->ssd_bmap_size && *bmap_ptr == 0xff){
-		//printk("%u < %u + %u, VALUE-AT-MAP:%u \n",  (void *)bmap_ptr, g->ssd_bmap, g->ssd_bmap_size, *bmap_ptr);
-		bmap_ptr++;
-	}
-	
-	/* Reached end of bit map, reinitialize to start */
-	if((void *)bmap_ptr >=  g->ssd_bmap + g->ssd_bmap_size){
-		bmap_ptr = g->ssd_bmap;
-	} 
-	goto check; 
-
-got_byte:
-
-	val = *bmap_ptr;
-	utmemassert(val != 0xff);
-	
-	//next_bit = (g->last_used_bit+1) % 8;
-
-	if(next_free){
-		bit += g->next_bit;
-		val >>= g->next_bit; 
-	}
-	
-	while(val & 1){
-		++bit;
-		val >>= 1;
-	}  
-	val = 1 << bit;
-
-	utmemassert((*bmap_ptr & val) == 0);
-	*bmap_ptr = (*bmap_ptr) ^ val;
-
-	g->next_byte = byte_position;
-	g->next_bit = (bit+1) % 8;
-
-	if(g->next_bit==0)
-		g->next_byte++;
- 
-	raw_spin_unlock(&g->kvm_tmem_lock); 
-	
-	//printk("Next-Bit:%u, Byte:%u, Bit:%u, Block:%lu\n", g->next_bit, byte_position, bit, ((byte_position << 3) + bit));
-
-	return ((byte_position << 3) + bit);
-
-}
 
 static void mark_free(struct global_info *g, unsigned long block_no)
 {
@@ -205,7 +224,7 @@ static void mark_free(struct global_info *g, unsigned long block_no)
 	bmap_ptr = g->ssd_bmap + byte;
 	val <<= bit;
 
-	//printk("FREE: %lu\n", block_no);
+	printk("FREE: %lu\n", block_no);
 
 	utmemassert(((*bmap_ptr) & val) == val);
 
