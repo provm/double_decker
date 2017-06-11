@@ -16,6 +16,7 @@ struct task_struct *kthread1, *kthread2;
 static DECLARE_WAIT_QUEUE_HEAD(kthread1_wq);
 static DECLARE_WAIT_QUEUE_HEAD(kthread2_wq);
 static bool kthread1_flag = false, kthread2_flag = false;
+static bool allow_mem_to_ssd = true;
 
 static struct global_info *global;
 
@@ -56,6 +57,13 @@ static ssize_t utmem_global_limit_set(struct kobject *kobj,
 	if (err)
 		return -EINVAL;
 
+	if (mode==1000)
+	{
+		printk("Disabled kthread1\n");
+		allow_mem_to_ssd = false;
+		return count;	
+	}
+	
 	global->mem_limit = mode;
 	readjust_client_entitlements(global);
 	return count;
@@ -1153,7 +1161,8 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
 		goto out;
 	WARN_ON(client != pool->client);
 
-	trigger_mem_to_ssd();
+	if(allow_mem_to_ssd)
+		trigger_mem_to_ssd();
 
 	// local_irq_save(flags);
 	if(pool->mem_entitlement){
@@ -1282,7 +1291,7 @@ out:
 		//atomic_dec(&pool->ssd_uptodate);
 		//atomic_dec(&pool->client->ssd_uptodate);
 
-		trigger_ssd_to_mem();
+		//trigger_ssd_to_mem();
 	}
 
 	return ret;
@@ -1412,7 +1421,9 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 
 				WARN_ON(oidp->oid[1]);
 				oidp->oid[1] = (unsigned long) client;
+				//printk("PUT: client-%lu, pool-%lu, oid-%lu:%lu:%lu, index-%lu START\n", client->id, op->pool_id, oidp->oid[0], oidp->oid[1], oidp->oid[2], op->u.gen.index);
 				ret = utmem_put_page(client, op->pool_id, oidp, op->u.gen.index, page);
+				//printk("PUT: client-%lu, pool-%lu, oid-%lu:%lu:%lu, index-%lu STOP:%d\n", client->id, op->pool_id, oidp->oid[0], oidp->oid[1], oidp->oid[2], op->u.gen.index, ret);
 
 				kvm_release_page_clean(page);
 
@@ -1450,8 +1461,10 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 				WARN_ON(oidp->oid[1]);
 				oidp->oid[1] = (unsigned long)client;
 
+				//printk("GET: client-%lu, pool-%lu, oid-%lu:%lu:%lu, index-%lu START\n", client->id, op->pool_id, oidp->oid[0], oidp->oid[1], oidp->oid[2], op->u.gen.index);
 				ret = utmem_get_page(client, op->pool_id, oidp, op->u.gen.index, page);
 				kvm_release_page_dirty(page);
+				//printk("GET: client-%lu, pool-%lu, oid-%lu:%lu:%lu, index-%lu STOP:%d\n", client->id, op->pool_id, oidp->oid[0], oidp->oid[1], oidp->oid[2], op->u.gen.index, ret);
 #if 0
 				rdtscll(end);
 				if (ret == 0){
@@ -1472,7 +1485,7 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 			
 				//printk("FLUSH-PAGE: client-%lu, pool-%lu, oid-%lu:%lu:%lu, index-%lu START\n", client->id, op->pool_id, oidp->oid[0], oidp->oid[1], oidp->oid[2], op->u.gen.index);
 				ret = utmem_flush_page(client, op->pool_id, oidp, op->u.gen.index);
-				//printk("FLUSH-PAGE: client-%lu, pool-%lu, oid-%lu:%lu:%lu, index-%lu STOP\n", client->id, op->pool_id, oidp->oid[0], oidp->oid[1], oidp->oid[2], op->u.gen.index);
+				//printk("FLUSH-PAGE: client-%lu, pool-%lu, oid-%lu:%lu:%lu, index-%lu STOP:%d\n", client->id, op->pool_id, oidp->oid[0], oidp->oid[1], oidp->oid[2], op->u.gen.index, ret);
 				break;
 			}
 		case TMEM_FLUSH_OBJECT:
@@ -1486,7 +1499,7 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 				//printk("FLUSH-OBJECT: client-%lu, pool-%lu, oid-%lu:%lu:%lu, START\n", client->id, op->pool_id, oidp->oid[0], oidp->oid[1], oidp->oid[2]);
 
 				ret = utmem_flush_object(client, op->pool_id, oidp);
-				//printk("FLUSH-OBJECT: client-%lu, pool-%lu, oid-%lu:%lu:%lu, STOP\n", client->id, op->pool_id, oidp->oid[0], oidp->oid[1], oidp->oid[2]);
+				//printk("FLUSH-OBJECT: client-%lu, pool-%lu, oid-%lu:%lu:%lu, STOP:%d\n", client->id, op->pool_id, oidp->oid[0], oidp->oid[1], oidp->oid[2], ret);
 				break;
 			}
 		default:
