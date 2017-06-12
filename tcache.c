@@ -60,12 +60,7 @@ void end_ssd_bio_write(struct bio *bio, int err)
 
 	atomic_dec(&n->tmem_obj->pool->client->g->pending_async_writes);
 
-	//atomic_inc(&n->tmem_obj->pool->ssd_uptodate); 
-	//atomic_inc(&n->tmem_obj->pool->client->ssd_uptodate); 
-
 	bio_put(bio);
-
-	//printk("PUT-S: %lu \n", n->page); 
 }
 
 void end_ssd_bio_read(struct bio *bio, int err)
@@ -167,52 +162,6 @@ got_byte:
 	return ((ins_byte_position << 3) + ins_bit);
 
 }
-/*
-static unsigned long get_ssd_free_block(struct global_info *g)
-{
-	bool final = false;
-	u8 *bmap_ptr;
-	u64 tsc_now;
-	unsigned byte_position;
-	u8 bit = 0, val;
-	rdtscll(tsc_now);
-
-	raw_spin_lock(&g->kvm_tmem_lock);  
-	bmap_ptr = g->ssd_bmap + (tsc_now % g->ssd_bmap_size);
-
-check:
-
-	byte_position = (void *)bmap_ptr - g->ssd_bmap;
-
-	if(likely(*bmap_ptr != 0xff))
-		goto got_byte;
-	bmap_ptr++;
-
-	while((void *)bmap_ptr < g->ssd_bmap + g->ssd_bmap_size && *bmap_ptr == 0xff)
-		bmap_ptr++;
-
-	if((void *)bmap_ptr >=  g->ssd_bmap + g->ssd_bmap_size){
-		bmap_ptr = g->ssd_bmap;
-		BUG_ON(final);
-		final = true;
-	} 
-	goto check; 
-
-got_byte:
-
-	val = *bmap_ptr;
-	utmemassert(val != 0xff);
-	while(val & 1){
-		++bit;
-		val >>= 1;
-	}  
-	val = 1 << bit;
-	utmemassert((*bmap_ptr & val) == 0);
-	*bmap_ptr = (*bmap_ptr) ^ val;
-	raw_spin_unlock(&g->kvm_tmem_lock); 
-	return ((byte_position << 3) + bit);
-}
-*/
 
 static void mark_free(struct global_info *g, unsigned long block_no)
 {
@@ -329,20 +278,6 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
 
 	utmem_pampd *n = NULL;
 
-
-	/* TD tmem->extra to point to eviction gapa  
-	   struct tmem_obj *tmem = (struct tmem_obj *)tmem_obj;
-
-	   utmemassert(tmem && tmem->extra);
-	 */   
-
-
-	/* TD
-	   if(atomic_read(&client->total_pages) + LIMIT_THRESH >= client->bmap->limit
-	   || utmem_mem_thresh <= nr_free_pages() || atomic_read(&total_used) + LIMIT_THRESH >= max_global_limit)
-	   start_evict = true; 
-	 */ 
-
 	page = (void *)__get_free_page(UTMEM_GFP_MASK);
 	if(unlikely(!page))
 		goto wakeup_and_failed;
@@ -396,13 +331,6 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
 		pool->mem_puts++;
 	}
 
-	/*  TD
-	    if(atomic_read(&client->total_pages) + LIMIT_THRESH >= client->bmap->limit
-	    || utmem_mem_thresh <= nr_free_pages() || atomic_read(&total_used) + LIMIT_THRESH >= max_global_limit)
-	    start_evict = true; 
-	    if(start_evict) 
-	    wake_up(&evict_wq);*/
-	
 	return n;
 
 wakeup_and_failed:
@@ -424,7 +352,6 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 {
 	void *dst;
 	int ret = -1;
-	//bool checker = false;	
 
 	utmem_pampd *n = (utmem_pampd *) pampd;
 
@@ -440,15 +367,6 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	BUG_ON(!n);
 
 	tmem = (struct tmem_obj *)n->tmem_obj;
-
-	/* Data is being moved from ssd to mem 
-	while(unlikely(n->status == MOVE_IN_PROGRESS)){
-		asm volatile(
-				"pause"
-			    );
-	}
-	n->status = GET_IN_PROGRESS;
-	*/
 
 	if(n->type == SSD){		
 		ret = read_and_free_from_ssd(client->g, page, n);
@@ -498,23 +416,12 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 
 
 	struct eviction_info *ev;
-	//bool checker = false;
 
 	/* TD: GLOBAL EVICT FOR SSD MEM */
 #ifdef GLOBAL_EVICT
 	ev = client->eviction_info;
 #endif
 	BUG_ON(!n);
-
-	//printk("FLUSHING\n");
-
-	/*
-	while(unlikely(n->status == MOVE_IN_PROGRESS)){
-		asm volatile(
-				"pause"
-			    );
-	}
-	*/
 
 	if(n->type == SSD){		
 		free_ssd_block(client->g, n);
@@ -544,7 +451,6 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 	}
 
 	kmem_cache_free(utmem_pampd_cache, n);
-	//n->status = FLUSH_IN_PROGRESS;
 	return;
 }
 
@@ -694,23 +600,15 @@ int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 		if(unlikely(!n)){				
 			goto wakeup_and_failed;
 		}
-		/*
-		else if(unlikely(n->status == GET_IN_PROGRESS || n->status == FLUSH_IN_PROGRESS)){
-			goto wakeup_and_failed; 
-		}*/
 		
 		hb = &pool->hashbucket[tmem_oid_hash(&n->tmem_obj->oid)];
 		spin_lock(&hb->lock);		
 		
-		//n->status = MOVE_IN_PROGRESS;
-
 		spin_lock(&mem_ev->ev_lock); 
 		list_del(&n->entry_list);
 		spin_unlock(&mem_ev->ev_lock); 
 
-		//printk("Moving: %d-%lu-%d\n", i, n->page, n->type);
 		ssd_alloc_and_write(client->g, n);
-		//n->type = SSD;
 
 		spin_lock(&ssd_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &ssd_ev->head); 
@@ -731,7 +629,6 @@ wakeup_and_failed:
 	atomic_add(i, &pool->ssd_used);
 
 	pool->move_mem_to_ssd += i;
-	//printk("Moved from mem to ssd: %d \n", i);
 
 	return i;
 }
@@ -752,15 +649,6 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 
 		n = list_first_entry(&ssd_ev->head, struct utmem_pampd, entry_list);
 
-		/*
-		if(unlikely(n->status == GET_IN_PROGRESS || n->status == FLUSH_IN_PROGRESS)){
-			spin_unlock(&ssd_ev->ev_lock);
-			//printk("GET(3)/FLUSH(4) in progress, STATUS:%d\n", n->status);
-			goto wakeup_and_failed; 
-		}
-		n->status = MOVE_IN_PROGRESS;
-		*/
-	
 		if(unlikely(!n) || unlikely(n->status == IO_IN_PROGRESS)){
 			goto wakeup_and_failed;
 		}
@@ -777,7 +665,6 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 			spin_lock(&ssd_ev->ev_lock); 
 			list_add(&n->entry_list, &ssd_ev->head); 
 			spin_unlock(&ssd_ev->ev_lock); 
-			//n->status = UPTODATE;
 
 			goto wakeup_and_failed;
 		}
@@ -790,7 +677,6 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		spin_lock(&mem_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &mem_ev->head); 
 		spin_unlock(&mem_ev->ev_lock);
-		//n->status = UPTODATE;
 
 		spin_unlock(&hb->lock);		
 	}
@@ -801,16 +687,11 @@ wakeup_and_failed:
 	atomic_sub(i, &client->ssd_used); 
 	atomic_sub(i, &client->g->ssd_used);
 
-	//atomic_sub(i, &pool->ssd_uptodate);
-	//atomic_sub(i, &pool->client->ssd_uptodate);
-
 	atomic_add(i, &pool->mem_used);
 	atomic_add(i, &client->mem_used);
 	atomic_add(i, &client->g->mem_used);
 
 	pool->move_ssd_to_mem += i;
-
-	//printk("Tcache-After: Moved:%d mem-used:%d ssd-used:%d\n", i, atomic_read(&pool->mem_used), atomic_read(&pool->ssd_used));
 
 	return i;
 }

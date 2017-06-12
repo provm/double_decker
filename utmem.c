@@ -1,6 +1,6 @@
 #include<linux/spinlock.h>
 #include<linux/kthread.h>
-#include<linux/delay.h>
+//#include<linux/delay.h>
 
 #include "utmem.h"
 #include "tmem.h"
@@ -57,13 +57,6 @@ static ssize_t utmem_global_limit_set(struct kobject *kobj,
 	if (err)
 		return -EINVAL;
 
-	if (mode==1000)
-	{
-		printk("Disabled kthread1\n");
-		allow_mem_to_ssd = false;
-		return count;	
-	}
-	
 	global->mem_limit = mode;
 	readjust_client_entitlements(global);
 	return count;
@@ -1291,7 +1284,7 @@ out:
 		//atomic_dec(&pool->ssd_uptodate);
 		//atomic_dec(&pool->client->ssd_uptodate);
 
-		//trigger_ssd_to_mem();
+		trigger_ssd_to_mem();
 	}
 
 	return ret;
@@ -1401,6 +1394,10 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 			break;
 
 		case TMEM_SET_POOL_WEIGHT:
+			ret = utmem_set_pool_weight(client, op->pool_id, op->u.cnew.weight, op->u.cnew.flags); 
+			break;
+
+		case TMEM_GET_POOL_STATS:
 			ret = utmem_set_pool_weight(client, op->pool_id, op->u.cnew.weight, op->u.cnew.flags); 
 			break;
 
