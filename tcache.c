@@ -600,16 +600,19 @@ int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 		if(unlikely(!n)){				
 			goto wakeup_and_failed;
 		}
-		
+	
+		//printk("1: MOVE OBJ:%lu-%lu-%lu INDEX:%lu\n", n->tmem_obj->oid.oid[0], n->tmem_obj->oid.oid[1],  n->tmem_obj->oid.oid[2], n->index); 	
 		hb = &pool->hashbucket[tmem_oid_hash(&n->tmem_obj->oid)];
 		spin_lock(&hb->lock);		
 		
+		//printk("2: MOVE OBJ:%lu-%lu-%lu INDEX:%lu\n", n->tmem_obj->oid.oid[0], n->tmem_obj->oid.oid[1],  n->tmem_obj->oid.oid[2], n->index); 	
 		spin_lock(&mem_ev->ev_lock); 
 		list_del(&n->entry_list);
 		spin_unlock(&mem_ev->ev_lock); 
 
 		ssd_alloc_and_write(client->g, n);
 
+		//printk("3: MOVE OBJ:%lu-%lu-%lu INDEX:%lu\n", n->tmem_obj->oid.oid[0], n->tmem_obj->oid.oid[1],  n->tmem_obj->oid.oid[2], n->index); 	
 		spin_lock(&ssd_ev->ev_lock); 
 		list_add_tail(&n->entry_list, &ssd_ev->head); 
 		spin_unlock(&ssd_ev->ev_lock); 

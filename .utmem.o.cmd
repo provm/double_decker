@@ -639,9 +639,6 @@ deps_/home/deba/prashanth/tmem_module-5.0/utmem.o := \
   include/linux/selinux.h \
     $(wildcard include/config/security/selinux.h) \
   include/uapi/linux/magic.h \
-  include/linux/delay.h \
-  arch/x86/include/asm/delay.h \
-  include/asm-generic/delay.h \
   /home/deba/prashanth/tmem_module-5.0/utmem.h \
   include/linux/module.h \
     $(wildcard include/config/module/sig.h) \
