@@ -46,6 +46,10 @@ struct global_info;
 enum{
 	UPTODATE,
 	IO_IN_PROGRESS,
+};
+
+enum{
+	UPDATED,
 	MOVE_IN_PROGRESS,
 	GET_IN_PROGRESS,
 	FLUSH_IN_PROGRESS	
@@ -61,8 +65,8 @@ typedef struct utmem_pampd{
 	struct tmem_obj *tmem_obj;  
 	struct list_head entry_list;
 	u32 index;
-	volatile u32 status:3,
-		 type;
+	volatile short move_status;
+	volatile u32 status:2, type;
 }utmem_pampd;
 
 

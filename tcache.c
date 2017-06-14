@@ -315,10 +315,9 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
 		pool->ssd_puts++;
 	}
 	else{
-
 		n->type = MEMORY;
 		n->status = UPTODATE;
-
+		
 		ev = pool->mem_eviction_info;
 		spin_lock(&ev->ev_lock); 
 		list_add_tail(&n->entry_list, &ev->head); 
@@ -330,6 +329,7 @@ static void *utmem_pampd_create(char *data, size_t size, bool raw, int eph,
 
 		pool->mem_puts++;
 	}
+	n->move_status = UPDATED;
 
 	return n;
 
@@ -367,6 +367,22 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 	BUG_ON(!n);
 
 	tmem = (struct tmem_obj *)n->tmem_obj;
+	
+	if(unlikely(n->move_status != UPDATED)){
+
+		/* Data is already got/flushed */
+		if(unlikely(n->move_status != MOVE_IN_PROGRESS)){
+			return -1;
+		}
+			
+		while(n->move_status == MOVE_IN_PROGRESS){
+			asm volatile(
+					"pause"
+				    );
+		}
+	}	
+	n->move_status = GET_IN_PROGRESS;
+
 
 	if(n->type == SSD){		
 		ret = read_and_free_from_ssd(client->g, page, n);
@@ -401,6 +417,7 @@ static int utmem_pampd_get_data_and_free(char *data, size_t *bufsize, bool raw,
 
 	}
 	
+	n->move_status = UPDATED;	
 	ret = 0;
 
 	kmem_cache_free(utmem_pampd_cache, n);
@@ -422,6 +439,21 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 	ev = client->eviction_info;
 #endif
 	BUG_ON(!n);
+	
+	if(unlikely(n->move_status != UPDATED)){
+
+		/* Data is already got/flushed */
+		if(unlikely(n->move_status != MOVE_IN_PROGRESS)){
+			return;
+		}
+			
+		while(n->move_status == MOVE_IN_PROGRESS){
+			asm volatile(
+					"pause"
+				    );
+		}
+	}
+	n->move_status = FLUSH_IN_PROGRESS;
 
 	if(n->type == SSD){		
 		free_ssd_block(client->g, n);
@@ -451,6 +483,9 @@ static void utmem_pampd_free(void *pampd, struct tmem_pool *pool,
 	}
 
 	kmem_cache_free(utmem_pampd_cache, n);
+
+	n->move_status = UPDATED;
+
 	return;
 }
 
@@ -587,7 +622,7 @@ static void utmem_obj_free(struct tmem_obj *obj, struct tmem_pool *pool)
 int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 {
 	int i;
-	struct tmem_hashbucket *hb;	
+	//struct tmem_hashbucket *hb;	
 	utmem_pampd *n = NULL; 	
 	struct tmem_client *client = pool->client;
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
@@ -600,10 +635,14 @@ int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 		if(unlikely(!n)){				
 			goto wakeup_and_failed;
 		}
+		else if(n->move_status != UPDATED){
+			goto wakeup_and_failed;		
+		}
+		n->move_status = MOVE_IN_PROGRESS;
 	
 		//printk("1: MOVE OBJ:%lu-%lu-%lu INDEX:%lu\n", n->tmem_obj->oid.oid[0], n->tmem_obj->oid.oid[1],  n->tmem_obj->oid.oid[2], n->index); 	
-		hb = &pool->hashbucket[tmem_oid_hash(&n->tmem_obj->oid)];
-		spin_lock(&hb->lock);		
+		//hb = &pool->hashbucket[tmem_oid_hash(&n->tmem_obj->oid)];
+		//spin_lock(&hb->lock);		
 		
 		//printk("2: MOVE OBJ:%lu-%lu-%lu INDEX:%lu\n", n->tmem_obj->oid.oid[0], n->tmem_obj->oid.oid[1],  n->tmem_obj->oid.oid[2], n->index); 	
 		spin_lock(&mem_ev->ev_lock); 
@@ -617,8 +656,8 @@ int tcache_move_mem_to_ssd(struct tmem_pool *pool, int num_of_pages)
 		list_add_tail(&n->entry_list, &ssd_ev->head); 
 		spin_unlock(&ssd_ev->ev_lock); 
 		
-		spin_unlock(&hb->lock);		
-
+		//spin_unlock(&hb->lock);		
+		n->move_status = UPDATED;	
 	}
 
 wakeup_and_failed:
@@ -643,7 +682,7 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 	utmem_pampd *n = NULL; 
 
 	struct page *page;
-	struct tmem_hashbucket *hb;	
+	//struct tmem_hashbucket *hb;	
 	struct tmem_client *client = pool->client;
 	struct eviction_info *mem_ev = pool->mem_eviction_info;
 	struct eviction_info *ssd_ev = pool->ssd_eviction_info;
@@ -652,12 +691,16 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 
 		n = list_first_entry(&ssd_ev->head, struct utmem_pampd, entry_list);
 
-		if(unlikely(!n) || unlikely(n->status == IO_IN_PROGRESS)){
+		if(unlikely(!n || n->status == IO_IN_PROGRESS)){
 			goto wakeup_and_failed;
 		}
+		else if(n->move_status != UPDATED){
+			goto wakeup_and_failed;		
+		}
+		n->move_status = MOVE_IN_PROGRESS;
 
-		hb = &pool->hashbucket[tmem_oid_hash(&n->tmem_obj->oid)];
-		spin_lock(&hb->lock);		
+		//hb = &pool->hashbucket[tmem_oid_hash(&n->tmem_obj->oid)];
+		//spin_lock(&hb->lock);		
 
 		spin_lock(&ssd_ev->ev_lock);
 		list_del(&n->entry_list); 	
@@ -673,7 +716,6 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		}
 
 		n->type = MEMORY;
-
 		ret = read_and_free_from_ssd(client->g, page, n);
 		n->page = (unsigned long) page_address(page);
 
@@ -681,7 +723,8 @@ int tcache_move_ssd_to_mem(struct tmem_pool *pool, int num_of_pages)
 		list_add_tail(&n->entry_list, &mem_ev->head); 
 		spin_unlock(&mem_ev->ev_lock);
 
-		spin_unlock(&hb->lock);		
+		//spin_unlock(&hb->lock);
+		n->move_status = UPDATED;		
 	}
 
 wakeup_and_failed:

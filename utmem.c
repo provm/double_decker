@@ -16,7 +16,6 @@ struct task_struct *kthread1, *kthread2;
 static DECLARE_WAIT_QUEUE_HEAD(kthread1_wq);
 static DECLARE_WAIT_QUEUE_HEAD(kthread2_wq);
 static bool kthread1_flag = false, kthread2_flag = false;
-static bool allow_mem_to_ssd = true;
 
 static struct global_info *global;
 
@@ -1154,8 +1153,7 @@ static int utmem_put_page(struct tmem_client *client, int pool_id, struct tmem_o
 		goto out;
 	WARN_ON(client != pool->client);
 
-	if(allow_mem_to_ssd)
-		trigger_mem_to_ssd();
+	trigger_mem_to_ssd();
 
 	// local_irq_save(flags);
 	if(pool->mem_entitlement){
