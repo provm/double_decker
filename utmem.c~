@@ -5,12 +5,9 @@
 #include "utmem.h"
 #include "tmem.h"
 
-#define MEM_EVICT_BATCH 256*8 
-#define MOVE_EVICT_BATCH 256*8 
-#define SSD_EVICT_BATCH 256*16 
-
+#define EVICT_BATCH 256*16 
 #define MEM_MOVE_LT 256*64 
-#define MEM_MOVE_HT 256*8 
+#define MEM_MOVE_HT 256*16 
 #define SSD_MOVE_HT 256*16
 #define OUT_OF_CACHE 256*1
 
@@ -20,9 +17,6 @@ struct task_struct *kthread1, *kthread2;
 static DECLARE_WAIT_QUEUE_HEAD(kthread1_wq);
 static DECLARE_WAIT_QUEUE_HEAD(kthread2_wq);
 static bool kthread1_flag = false, kthread2_flag = false;
-
-inline void cache_cleanup(void); 
-static int utmem_evict_ssd (struct global_info *g);
 
 static struct global_info *global;
 
@@ -571,13 +565,8 @@ static int evict_from_pool(struct tmem_pool *pool, int num, bool ssd)
 {
 	int evicts = 0, moved = 0, ret = 0;
 
-	if(!ssd && (pool->ssd_entitlement - atomic_read(&pool->ssd_used)) >= MOVE_EVICT_BATCH){
-	
-		if(global->ssd_limit - SSD_MOVE_HT < atomic_read(&global->ssd_used)){
-			utmem_evict_ssd(global);
-		}
-
-		moved = tcache_move_mem_to_ssd(pool, MOVE_EVICT_BATCH);	
+	if(!ssd && (pool->ssd_entitlement - atomic_read(&pool->ssd_used)) >= EVICT_BATCH){
+		moved = tcache_move_mem_to_ssd(pool, EVICT_BATCH);	
 	}
 
 	if(!moved){
@@ -903,9 +892,9 @@ static inline int client_overflow(struct tmem_client *client)
 #endif
 
 static inline int get_overuse(unsigned entitlement, int weight, int used, 
-		unsigned extra, int cuml_weight, int evict_batch)
+		unsigned extra, int cuml_weight)
 {
-	return ((used + evict_batch) - (entitlement + (extra * weight) / cuml_weight));
+	return ((used + EVICT_BATCH) - (entitlement + (extra * weight) / cuml_weight));
 }
 
 /*
@@ -933,10 +922,10 @@ static int evict_memory_from_client(struct tmem_client *client)
 		else if(!pool->mem_entitlement)
 			continue;
 
-		if(pool->mem_entitlement < used + MEM_EVICT_BATCH){  
+		if(pool->mem_entitlement < used + EVICT_BATCH){  
 			pools[count++] = pool;   // Already over the limits
 			cuml_weight += pool->mem_weight;
-		}else if(pool->mem_entitlement - used > 2 * MEM_EVICT_BATCH){
+		}else if(pool->mem_entitlement - used > 2 * EVICT_BATCH){
 			under_utilized_others += pool->mem_entitlement - used;
 		}
 	}
@@ -947,10 +936,10 @@ static int evict_memory_from_client(struct tmem_client *client)
 		return -1;
 
 	pool = pools[0];    
-	current_max_overuse = get_overuse(pool->mem_entitlement, pool->mem_weight, atomic_read(&pool->mem_used), under_utilized_others, cuml_weight, MEM_EVICT_BATCH);
+	current_max_overuse = get_overuse(pool->mem_entitlement, pool->mem_weight, atomic_read(&pool->mem_used), under_utilized_others, cuml_weight);
 
 	for(i=1; i < count; ++i){
-		int new_overuse = get_overuse(pools[i]->mem_entitlement, pools[i]->mem_weight,  atomic_read(&pools[i]->mem_used), under_utilized_others, cuml_weight, MEM_EVICT_BATCH);
+		int new_overuse = get_overuse(pools[i]->mem_entitlement, pools[i]->mem_weight,  atomic_read(&pools[i]->mem_used), under_utilized_others, cuml_weight);
 		if( new_overuse > current_max_overuse){
 			pool = pools[i];     
 		}
@@ -958,7 +947,7 @@ static int evict_memory_from_client(struct tmem_client *client)
 
 got_pool:  
 
-	return evict_from_pool(pool, MEM_EVICT_BATCH, false);     
+	return evict_from_pool(pool, EVICT_BATCH, false);     
 }
 
 /*
@@ -988,7 +977,7 @@ static int utmem_evict_memory(struct global_info *g)
 			continue;
 
 
-		if(client->mem_entitlement < used + MEM_EVICT_BATCH){  
+		if(client->mem_entitlement < used + EVICT_BATCH){  
 			cls[count++] = client;   // Already over the limits
 			cuml_weight += client->mem_weight;
 		}else{
@@ -1003,10 +992,10 @@ static int utmem_evict_memory(struct global_info *g)
 
 	client = cls[0];    
 
-	current_max_overuse = get_overuse(client->mem_entitlement, client->mem_weight, atomic_read(&client->mem_used), under_utilized_others, cuml_weight, MEM_EVICT_BATCH);
+	current_max_overuse = get_overuse(client->mem_entitlement, client->mem_weight, atomic_read(&client->mem_used), under_utilized_others, cuml_weight);
 
 	for(i=1; i<count; ++i){
-		int new_overuse = get_overuse(cls[i]->mem_entitlement, cls[i]->mem_weight,  atomic_read(&cls[i]->mem_used), under_utilized_others, cuml_weight, MEM_EVICT_BATCH);
+		int new_overuse = get_overuse(cls[i]->mem_entitlement, cls[i]->mem_weight,  atomic_read(&cls[i]->mem_used), under_utilized_others, cuml_weight);
 		if( new_overuse > current_max_overuse){
 			client = cls[i];     
 		}
@@ -1041,10 +1030,10 @@ static int evict_ssdmem_from_client(struct tmem_client *client)
 		else if(!pool->ssd_entitlement)
 			continue;
 
-		if(pool->ssd_entitlement < used + SSD_EVICT_BATCH){
+		if(pool->ssd_entitlement < used + EVICT_BATCH){
 			pools[count++] = pool;   // Already over the limits
 			cuml_weight += pool->ssd_weight;
-		}else if(pool->ssd_entitlement - used > 2 * SSD_EVICT_BATCH){
+		}else if(pool->ssd_entitlement - used > 2 * EVICT_BATCH){
 			under_utilized_others += pool->ssd_entitlement - used;
 		}
 	}
@@ -1055,10 +1044,10 @@ static int evict_ssdmem_from_client(struct tmem_client *client)
 		return -1;
 
 	pool = pools[0];
-	current_max_overuse = get_overuse(pool->ssd_entitlement, pool->ssd_weight, atomic_read(&pool->ssd_used), under_utilized_others, cuml_weight, SSD_EVICT_BATCH);
+	current_max_overuse = get_overuse(pool->ssd_entitlement, pool->ssd_weight, atomic_read(&pool->ssd_used), under_utilized_others, cuml_weight);
 
 	for(i=1; i < count; ++i){
-		int new_overuse = get_overuse(pools[i]->ssd_entitlement, pools[i]->ssd_weight,  atomic_read(&pools[i]->ssd_used), under_utilized_others, cuml_weight, SSD_EVICT_BATCH);
+		int new_overuse = get_overuse(pools[i]->ssd_entitlement, pools[i]->ssd_weight,  atomic_read(&pools[i]->ssd_used), under_utilized_others, cuml_weight);
 		if( new_overuse > current_max_overuse){
 			pool = pools[i];
 		}
@@ -1066,7 +1055,7 @@ static int evict_ssdmem_from_client(struct tmem_client *client)
 
 got_pool:
 
-	return evict_from_pool(pool, SSD_EVICT_BATCH, true);
+	return evict_from_pool(pool, EVICT_BATCH, true);
 }
 
 
@@ -1093,7 +1082,7 @@ static int utmem_evict_ssd (struct global_info *g)
 			continue;
 
 
-		if(client->ssd_entitlement < used + SSD_EVICT_BATCH){  
+		if(client->ssd_entitlement < used + EVICT_BATCH){  
 			cls[count++] = client;   // Already over the limits
 			cuml_weight += client->ssd_weight;
 		}else{
@@ -1107,10 +1096,10 @@ static int utmem_evict_ssd (struct global_info *g)
 		return -1;
 
 	client = cls[0];    
-	current_max_overuse = get_overuse(client->ssd_entitlement, client->ssd_weight, atomic_read(&client->ssd_used), under_utilized_others, cuml_weight, SSD_EVICT_BATCH);
+	current_max_overuse = get_overuse(client->ssd_entitlement, client->ssd_weight, atomic_read(&client->ssd_used), under_utilized_others, cuml_weight);
 
 	for(i=1; i<count; ++i){
-		int new_overuse = get_overuse(cls[i]->ssd_entitlement, cls[i]->ssd_weight,  atomic_read(&cls[i]->ssd_used), under_utilized_others, cuml_weight, SSD_EVICT_BATCH);
+		int new_overuse = get_overuse(cls[i]->ssd_entitlement, cls[i]->ssd_weight,  atomic_read(&cls[i]->ssd_used), under_utilized_others, cuml_weight);
 		if( new_overuse > current_max_overuse){
 			client = cls[i];     
 		}
@@ -1126,21 +1115,23 @@ inline void trigger_mem_to_ssd(void)
 {
 
 	if(	
-		(global->mem_limit - MEM_MOVE_HT < atomic_read(&global->mem_used)) ||
-		(global->ssd_limit - SSD_MOVE_HT < atomic_read(&global->ssd_used)) )
-	{
-		/*	
+			(global->mem_limit - MEM_MOVE_HT < atomic_read(&global->mem_used)) ||
+			(global->ssd_limit - SSD_MOVE_HT < atomic_read(&global->ssd_used)) 
+	  ){
+		kthread1_flag = true;
+		wake_up_interruptible(&kthread1_wq);
+
+		
 		if(unlikely	
 			(global->mem_limit - OUT_OF_CACHE < atomic_read(&global->mem_used)) ||
 			(global->ssd_limit - OUT_OF_CACHE < atomic_read(&global->ssd_used)) )
 		{
-			// Sync eviction
-			cache_cleanup();
+			
 		}
-		
-		/* Async eviction */			
-		kthread1_flag = true;
-		wake_up_interruptible(&kthread1_wq);
+		else
+		{
+			
+		}
 	}
 
 }
@@ -1152,7 +1143,7 @@ inline void trigger_ssd_to_mem(void)
 	if(
 			global->mem_limit > 0 &&
 			atomic_read(&global->mem_used) < (global->mem_limit - MEM_MOVE_LT) &&
-			atomic_read(&global->ssd_used) >= MOVE_EVICT_BATCH
+			atomic_read(&global->ssd_used) >= EVICT_BATCH
 	  ){
 		kthread2_flag = true;
 		wake_up_interruptible(&kthread2_wq);		
@@ -1199,7 +1190,7 @@ out:
 
 static int client_memory_underuse(struct tmem_client *client)
 {
-	return client->mem_entitlement - (atomic_read(&client->mem_used) + MEM_EVICT_BATCH);
+	return client->mem_entitlement - (atomic_read(&client->mem_used) + EVICT_BATCH);
 }
 
 static struct tmem_client *pick_underutilized_client(struct global_info *g){
@@ -1213,7 +1204,7 @@ static struct tmem_client *pick_underutilized_client(struct global_info *g){
 
 		//printk("CLIENT-%d: limit:%u, ssd_used:%u \n", i, client->mem_entitlement, atomic_read(&client->ssd_used));
 
-		if(client->mem_entitlement && atomic_read(&client->ssd_used) > MOVE_EVICT_BATCH){  
+		if(client->mem_entitlement && atomic_read(&client->ssd_used) > EVICT_BATCH){  
 			cls[count++] = client;  
 		}
 	}
@@ -1239,7 +1230,7 @@ static struct tmem_client *pick_underutilized_client(struct global_info *g){
 
 static int pool_memory_underuse(struct tmem_pool *pool)
 {
-	return pool->mem_entitlement - (atomic_read(&pool->mem_used) + MEM_EVICT_BATCH);
+	return pool->mem_entitlement - (atomic_read(&pool->mem_used) + EVICT_BATCH);
 }
 
 static struct tmem_pool *pick_underutilized_pool(struct tmem_client *client){
@@ -1256,7 +1247,7 @@ static struct tmem_pool *pick_underutilized_pool(struct tmem_client *client){
 
 		//printk("POOL-%d: limit:%u, ssd_used:%u \n", i, pool->mem_entitlement, atomic_read(&pool->ssd_used));
 
-		if(pool->mem_entitlement && atomic_read(&pool->ssd_used) > MOVE_EVICT_BATCH){  
+		if(pool->mem_entitlement && atomic_read(&pool->ssd_used) > EVICT_BATCH){  
 			pools[count++] = pool;   		
 		}
 	}
@@ -1552,22 +1543,27 @@ int utmem_vmshutdown(struct kvm *kvm)
 inline void cache_cleanup(void){
 
 	if(global->ssd_limit - SSD_MOVE_HT < atomic_read(&global->ssd_used)){
-		utmem_evict_ssd(global);
+		evicted += utmem_evict_ssd(global);
 	}
 
 	if(global->mem_limit - MEM_MOVE_HT < atomic_read(&global->mem_used)){
-		utmem_evict_memory(global);
+		if(atomic_inc_and_test(&global->evicting)){
+			evicted += utmem_evict_memory(global);
+		}
+		atomic_dec(&global->evicting);
 	}
 
 }
 
 int kthread_cache_cleanup(void *data)
 {
+	int evicted = 0;
 	printk("Kthread-1: Initialized\n");
 
 	while(!kthread_should_stop()){
 
 		wait_event_interruptible(kthread1_wq, kthread1_flag);
+		evicted = 0;
 
 		cache_cleanup();
 
@@ -1576,7 +1572,7 @@ int kthread_cache_cleanup(void *data)
 	}
 	printk("Kthread-1: Terminated\n");
 
-	return 0;
+	return evicted;
 }
 
 int kthread_move_ssd_to_mem(void *data)
@@ -1601,7 +1597,7 @@ int kthread_move_ssd_to_mem(void *data)
 		if(client){
 			pool = pick_underutilized_pool(client);
 			if(pool)
-				moved = tcache_move_ssd_to_mem(pool, MOVE_EVICT_BATCH);
+				moved = tcache_move_ssd_to_mem(pool, EVICT_BATCH);
 		}
 
 		kthread2_flag = false;
