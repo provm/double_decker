@@ -1,6 +1,16 @@
 #include<linux/spinlock.h>
 #include<linux/kthread.h>
-//#include<linux/delay.h>
+#include<linux/kernel.h>
+
+#include <linux/init.h>           
+#include <linux/module.h>         
+#include <linux/device.h>        
+#include <linux/kernel.h>         
+#include <linux/fs.h>             
+#include <asm/uaccess.h> 
+#include <linux/mutex.h>
+#include <linux/slab.h>
+#include <linux/mm.h>  
 
 #include "utmem.h"
 #include "tmem.h"
@@ -848,6 +858,39 @@ out:
 	return ret;
 
 }
+
+
+int utmem_get_pool_stats(struct tmem_client *client, int pool_id, struct page *page)
+{
+	struct tmem_pool *pool = NULL;
+	int ret = -1;
+	char *data = (char *) page_to_virt(page);
+
+	if (pool_id < 0)
+		goto out;
+
+	pool = client->pools[pool_id];
+	if (pool == NULL)
+		goto out;
+
+	sprintf(data,"GET \tRequests:%u \
+			\nMEM \tUsed:%u \tLimit:%u \tGets:%u \tPuts:%u \tFlushes:%u \tEvicts:%u \tDemoted :%u \tCalc-used:%u \
+			\nSSD \tUsed:%u \tLimit:%u \tGets:%u \tPuts:%u \tFlushes:%u \tEvicts:%u \tPromoted:%u \tCalc-used:%u \n", 
+			pool->get_requests, 
+			atomic_read(&pool->mem_used), pool->mem_entitlement, pool->mem_gets, pool->mem_puts, pool->mem_flushes, pool->mem_evicts, pool->move_mem_to_ssd, 
+			pool->mem_puts - pool->mem_gets - pool->mem_flushes - pool->move_mem_to_ssd + pool->move_ssd_to_mem,
+			atomic_read(&pool->ssd_used), pool->ssd_entitlement, pool->ssd_gets, pool->ssd_puts, pool->ssd_flushes, pool->ssd_evicts, pool->move_ssd_to_mem, 
+			pool->ssd_puts - pool->ssd_gets - pool->ssd_flushes - pool->move_ssd_to_mem + pool->move_mem_to_ssd
+	);
+
+	printk("DATA SENT \n%s", data);
+	ret = 0;
+out:
+	return ret;
+
+}
+
+
 #if 0
 static int client_evict(struct tmem_client *client, int num)
 {
@@ -1129,7 +1172,7 @@ inline void trigger_mem_to_ssd(void)
 		(global->mem_limit - MEM_MOVE_HT < atomic_read(&global->mem_used)) ||
 		(global->ssd_limit - SSD_MOVE_HT < atomic_read(&global->ssd_used)) )
 	{
-		/*	
+			
 		if(unlikely	
 			(global->mem_limit - OUT_OF_CACHE < atomic_read(&global->mem_used)) ||
 			(global->ssd_limit - OUT_OF_CACHE < atomic_read(&global->ssd_used)) )
@@ -1402,6 +1445,9 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 		goto out;  
 	}
 
+	//printk("Hypercall recieved\n");
+	
+
 	switch(op->cmd){
 
 		case TMEM_NEW_POOL:
@@ -1419,8 +1465,27 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 			break;
 
 		case TMEM_GET_POOL_STATS:
-			ret = utmem_set_pool_weight(client, op->pool_id, op->u.cnew.weight, op->u.cnew.flags); 
-			break;
+			{
+				struct page *page = NULL;
+				
+				printk("Pool stats request\n");
+				
+				page = get_mpage(vcpu->kvm, op->u.gen.gmfn);
+				if(IS_ERR_OR_NULL(page)){
+					printk(KERN_INFO "Invalid page\n");
+					return -EINVAL;
+				}
+				else if(PageKsm(page)){
+					printk(KERN_INFO "Called on shared page\n");
+					kvm_release_page_clean(page);
+					return -EINVAL;
+				}
+
+				ret = utmem_get_pool_stats(client, op->pool_id, page); 
+				kvm_release_page_dirty(page);
+				
+				break;
+			}
 
 		case TMEM_PUT_PAGE:
 			{
@@ -1521,6 +1586,7 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 				break;
 			}
 		default:
+			//printk("Hypercall no response\n");
 			break;
 	}
 

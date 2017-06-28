@@ -639,7 +639,6 @@ deps_/home/deba/prashanth/tmem_module-5.0/utmem.o := \
   include/linux/selinux.h \
     $(wildcard include/config/security/selinux.h) \
   include/uapi/linux/magic.h \
-  /home/deba/prashanth/tmem_module-5.0/utmem.h \
   include/linux/module.h \
     $(wildcard include/config/module/sig.h) \
     $(wildcard include/config/kallsyms.h) \
@@ -700,44 +699,24 @@ deps_/home/deba/prashanth/tmem_module-5.0/utmem.o := \
     $(wildcard include/config/have/mod/arch/specific.h) \
     $(wildcard include/config/modules/use/elf/rel.h) \
     $(wildcard include/config/modules/use/elf/rela.h) \
-  include/generated/uapi/linux/version.h \
-  include/linux/mm.h \
-    $(wildcard include/config/ppc.h) \
-    $(wildcard include/config/parisc.h) \
-    $(wildcard include/config/metag.h) \
-    $(wildcard include/config/shmem.h) \
-    $(wildcard include/config/debug/vm/rb.h) \
-    $(wildcard include/config/debug/pagealloc.h) \
-    $(wildcard include/config/hugetlbfs.h) \
-  include/linux/debug_locks.h \
-    $(wildcard include/config/debug/locking/api/selftests.h) \
-  include/linux/bit_spinlock.h \
-  include/linux/shrinker.h \
-  include/linux/page_ext.h \
-    $(wildcard include/config/page/owner.h) \
-  include/linux/stacktrace.h \
-    $(wildcard include/config/stacktrace.h) \
-    $(wildcard include/config/user/stacktrace/support.h) \
-  arch/x86/include/asm/pgtable.h \
-    $(wildcard include/config/have/arch/soft/dirty.h) \
-  arch/x86/include/asm/pgtable_64.h \
-  include/asm-generic/pgtable.h \
-    $(wildcard include/config/have/arch/huge/vmap.h) \
-  include/linux/page-flags.h \
-    $(wildcard include/config/pageflags/extended.h) \
-    $(wildcard include/config/arch/uses/pg/uncached.h) \
-    $(wildcard include/config/memory/failure.h) \
-    $(wildcard include/config/swap.h) \
-    $(wildcard include/config/ksm.h) \
-  include/linux/huge_mm.h \
-  include/linux/vmstat.h \
-    $(wildcard include/config/vm/event/counters.h) \
-    $(wildcard include/config/debug/tlbflush.h) \
-    $(wildcard include/config/debug/vm/vmacache.h) \
-  include/linux/vm_event_item.h \
-    $(wildcard include/config/migration.h) \
-    $(wildcard include/config/memory/balloon.h) \
-    $(wildcard include/config/balloon/compaction.h) \
+  include/linux/device.h \
+    $(wildcard include/config/debug/devres.h) \
+    $(wildcard include/config/pinctrl.h) \
+    $(wildcard include/config/dma/cma.h) \
+    $(wildcard include/config/of.h) \
+    $(wildcard include/config/devtmpfs.h) \
+    $(wildcard include/config/sysfs/deprecated.h) \
+  include/linux/klist.h \
+  include/linux/pinctrl/devinfo.h \
+  include/linux/pinctrl/consumer.h \
+  include/linux/seq_file.h \
+  include/linux/pinctrl/pinctrl-state.h \
+  include/linux/ratelimit.h \
+  arch/x86/include/asm/device.h \
+    $(wildcard include/config/x86/dev/dma/ops.h) \
+    $(wildcard include/config/intel/iommu.h) \
+    $(wildcard include/config/amd/iommu.h) \
+  include/linux/pm_wakeup.h \
   include/linux/fs.h \
     $(wildcard include/config/fs/posix/acl.h) \
     $(wildcard include/config/ima.h) \
@@ -745,15 +724,18 @@ deps_/home/deba/prashanth/tmem_module-5.0/utmem.o := \
     $(wildcard include/config/file/locking.h) \
     $(wildcard include/config/quota.h) \
     $(wildcard include/config/fs/dax.h) \
+    $(wildcard include/config/migration.h) \
   include/linux/kdev_t.h \
   include/uapi/linux/kdev_t.h \
   include/linux/dcache.h \
   include/linux/rculist_bl.h \
   include/linux/list_bl.h \
+  include/linux/bit_spinlock.h \
   include/linux/lockref.h \
     $(wildcard include/config/arch/use/cmpxchg/lockref.h) \
   include/linux/path.h \
   include/linux/list_lru.h \
+  include/linux/shrinker.h \
   include/linux/radix-tree.h \
   include/linux/semaphore.h \
   include/uapi/linux/fiemap.h \
@@ -777,6 +759,12 @@ deps_/home/deba/prashanth/tmem_module-5.0/utmem.o := \
   include/uapi/linux/fcntl.h \
   arch/x86/include/uapi/asm/fcntl.h \
   include/uapi/asm-generic/fcntl.h \
+  arch/x86/include/asm/uaccess.h \
+    $(wildcard include/config/x86/intel/usercopy.h) \
+    $(wildcard include/config/debug/strict/user/copy/checks.h) \
+  arch/x86/include/asm/smap.h \
+    $(wildcard include/config/x86/smap.h) \
+  arch/x86/include/asm/uaccess_64.h \
   include/linux/slab.h \
     $(wildcard include/config/debug/slab.h) \
     $(wildcard include/config/failslab.h) \
@@ -787,14 +775,44 @@ deps_/home/deba/prashanth/tmem_module-5.0/utmem.o := \
     $(wildcard include/config/debug/kmemleak.h) \
   include/linux/kasan.h \
     $(wildcard include/config/kasan/shadow/offset.h) \
+  include/linux/mm.h \
+    $(wildcard include/config/ppc.h) \
+    $(wildcard include/config/parisc.h) \
+    $(wildcard include/config/metag.h) \
+    $(wildcard include/config/shmem.h) \
+    $(wildcard include/config/debug/vm/rb.h) \
+    $(wildcard include/config/debug/pagealloc.h) \
+    $(wildcard include/config/hugetlbfs.h) \
+  include/linux/debug_locks.h \
+    $(wildcard include/config/debug/locking/api/selftests.h) \
+  include/linux/page_ext.h \
+    $(wildcard include/config/page/owner.h) \
+  include/linux/stacktrace.h \
+    $(wildcard include/config/stacktrace.h) \
+    $(wildcard include/config/user/stacktrace/support.h) \
+  arch/x86/include/asm/pgtable.h \
+    $(wildcard include/config/have/arch/soft/dirty.h) \
+  arch/x86/include/asm/pgtable_64.h \
+  include/asm-generic/pgtable.h \
+    $(wildcard include/config/have/arch/huge/vmap.h) \
+  include/linux/page-flags.h \
+    $(wildcard include/config/pageflags/extended.h) \
+    $(wildcard include/config/arch/uses/pg/uncached.h) \
+    $(wildcard include/config/memory/failure.h) \
+    $(wildcard include/config/swap.h) \
+    $(wildcard include/config/ksm.h) \
+  include/linux/huge_mm.h \
+  include/linux/vmstat.h \
+    $(wildcard include/config/vm/event/counters.h) \
+    $(wildcard include/config/debug/tlbflush.h) \
+    $(wildcard include/config/debug/vm/vmacache.h) \
+  include/linux/vm_event_item.h \
+    $(wildcard include/config/memory/balloon.h) \
+    $(wildcard include/config/balloon/compaction.h) \
+  /home/deba/prashanth/tmem_module-5.0/utmem.h \
+  include/generated/uapi/linux/version.h \
   include/linux/highmem.h \
   include/linux/uaccess.h \
-  arch/x86/include/asm/uaccess.h \
-    $(wildcard include/config/x86/intel/usercopy.h) \
-    $(wildcard include/config/debug/strict/user/copy/checks.h) \
-  arch/x86/include/asm/smap.h \
-    $(wildcard include/config/x86/smap.h) \
-  arch/x86/include/asm/uaccess_64.h \
   include/linux/hardirq.h \
   include/linux/ftrace_irq.h \
     $(wildcard include/config/ftrace/nmi/enter.h) \
@@ -841,7 +859,6 @@ deps_/home/deba/prashanth/tmem_module-5.0/utmem.o := \
   include/uapi/linux/cgroupstats.h \
   include/uapi/linux/taskstats.h \
   include/linux/percpu-refcount.h \
-  include/linux/seq_file.h \
   include/linux/cgroup_subsys.h \
     $(wildcard include/config/cgroup/cpuacct.h) \
     $(wildcard include/config/cgroup/device.h) \
@@ -877,7 +894,6 @@ deps_/home/deba/prashanth/tmem_module-5.0/utmem.o := \
     $(wildcard include/config/pci/msi.h) \
     $(wildcard include/config/generic/msi/irq/domain.h) \
     $(wildcard include/config/pci/msi/irq/domain.h) \
-  include/linux/ratelimit.h \
   include/linux/context_tracking.h \
     $(wildcard include/config/context/tracking/force.h) \
   include/uapi/linux/kvm.h \
@@ -934,22 +950,6 @@ deps_/home/deba/prashanth/tmem_module-5.0/utmem.o := \
     $(wildcard include/config/pm/sleep/smp.h) \
   include/linux/node.h \
     $(wildcard include/config/memory/hotplug/sparse.h) \
-  include/linux/device.h \
-    $(wildcard include/config/debug/devres.h) \
-    $(wildcard include/config/pinctrl.h) \
-    $(wildcard include/config/dma/cma.h) \
-    $(wildcard include/config/of.h) \
-    $(wildcard include/config/devtmpfs.h) \
-    $(wildcard include/config/sysfs/deprecated.h) \
-  include/linux/klist.h \
-  include/linux/pinctrl/devinfo.h \
-  include/linux/pinctrl/consumer.h \
-  include/linux/pinctrl/pinctrl-state.h \
-  arch/x86/include/asm/device.h \
-    $(wildcard include/config/x86/dev/dma/ops.h) \
-    $(wildcard include/config/intel/iommu.h) \
-    $(wildcard include/config/amd/iommu.h) \
-  include/linux/pm_wakeup.h \
   include/linux/jump_label_ratelimit.h \
   include/linux/perf_regs.h \
     $(wildcard include/config/have/perf/regs.h) \
