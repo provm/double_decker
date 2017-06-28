@@ -549,14 +549,11 @@ static ssize_t pool_stats_show(struct kobject *kobj, struct kobj_attribute *attr
 		return -EINVAL;
 
 	return sprintf(buf, 	"GET \tRequests:%u \
-				\nMEM \tUsed:%u \tLimit:%u \tGets:%u \tPuts:%u \tFlushes:%u \tEvicts:%u \tDemoted :%u \tCalc-used:%u \
-			   	\nSSD \tUsed:%u \tLimit:%u \tGets:%u \tPuts:%u \tFlushes:%u \tEvicts:%u \tPromoted:%u \tCalc-used:%u \n", 
+				\nMEM \tUsed:%u \tLimit:%u \tGets:%u \tPuts:%u \tFlushes:%u \tEvicts:%u \tDemoted :%u \
+			   	\nSSD \tUsed:%u \tLimit:%u \tGets:%u \tPuts:%u \tFlushes:%u \tEvicts:%u \tPromoted:%u \n", 
 				pool->get_requests, 
 				atomic_read(&pool->mem_used), pool->mem_entitlement, pool->mem_gets, pool->mem_puts, pool->mem_flushes, pool->mem_evicts, pool->move_mem_to_ssd, 
-				pool->mem_puts - pool->mem_gets - pool->mem_flushes - pool->move_mem_to_ssd + pool->move_ssd_to_mem,
-				atomic_read(&pool->ssd_used), pool->ssd_entitlement, pool->ssd_gets, pool->ssd_puts, pool->ssd_flushes, pool->ssd_evicts, pool->move_ssd_to_mem, 
-				pool->ssd_puts - pool->ssd_gets - pool->ssd_flushes - pool->move_ssd_to_mem + pool->move_mem_to_ssd
-			//atomic_read(&pool->ssd_uptodate)
+				atomic_read(&pool->ssd_used), pool->ssd_entitlement, pool->ssd_gets, pool->ssd_puts, pool->ssd_flushes, pool->ssd_evicts, pool->move_ssd_to_mem 
 		      );
 }
 static struct kobj_attribute pool_stats_attribute = __ATTR(stats,0444,pool_stats_show,NULL);
@@ -864,7 +861,8 @@ int utmem_get_pool_stats(struct tmem_client *client, int pool_id, struct page *p
 {
 	struct tmem_pool *pool = NULL;
 	int ret = -1;
-	char *data = (char *) page_to_virt(page);
+	struct tmem_pool_stats *stats; 
+
 
 	if (pool_id < 0)
 		goto out;
@@ -873,17 +871,26 @@ int utmem_get_pool_stats(struct tmem_client *client, int pool_id, struct page *p
 	if (pool == NULL)
 		goto out;
 
-	sprintf(data,"GET \tRequests:%u \
-			\nMEM \tUsed:%u \tLimit:%u \tGets:%u \tPuts:%u \tFlushes:%u \tEvicts:%u \tDemoted :%u \tCalc-used:%u \
-			\nSSD \tUsed:%u \tLimit:%u \tGets:%u \tPuts:%u \tFlushes:%u \tEvicts:%u \tPromoted:%u \tCalc-used:%u \n", 
-			pool->get_requests, 
-			atomic_read(&pool->mem_used), pool->mem_entitlement, pool->mem_gets, pool->mem_puts, pool->mem_flushes, pool->mem_evicts, pool->move_mem_to_ssd, 
-			pool->mem_puts - pool->mem_gets - pool->mem_flushes - pool->move_mem_to_ssd + pool->move_ssd_to_mem,
-			atomic_read(&pool->ssd_used), pool->ssd_entitlement, pool->ssd_gets, pool->ssd_puts, pool->ssd_flushes, pool->ssd_evicts, pool->move_ssd_to_mem, 
-			pool->ssd_puts - pool->ssd_gets - pool->ssd_flushes - pool->move_ssd_to_mem + pool->move_mem_to_ssd
-	);
+	stats = (struct tmem_pool_stats *) page_to_virt(page);
+	
+	stats->get_requests = pool->get_requests;
+	
+	stats->mem_used = atomic_read(&pool->mem_used);
+	stats->mem_entitlement = pool->mem_entitlement; 
+	stats->mem_gets = pool->mem_gets; 
+	stats->mem_puts = pool->mem_puts; 
+	stats->mem_flushes = pool->mem_flushes; 
+	stats->mem_evicts = pool->mem_evicts; 
+	stats->move_mem_to_ssd = pool->move_mem_to_ssd; 
 
-	printk("DATA SENT \n%s", data);
+	stats->ssd_used = atomic_read(&pool->ssd_used); 
+	stats->ssd_entitlement = pool->ssd_entitlement; 
+	stats->ssd_gets = pool->ssd_gets; 
+	stats->ssd_puts = pool->ssd_puts; 
+	stats->ssd_flushes = pool->ssd_flushes; 
+	stats->ssd_evicts = pool->ssd_evicts;
+	stats->move_ssd_to_mem = pool->move_ssd_to_mem; 
+	
 	ret = 0;
 out:
 	return ret;
@@ -1468,7 +1475,7 @@ int utmem_hypercall(struct kvm_tmem_op *op, struct kvm_vcpu *vcpu)
 			{
 				struct page *page = NULL;
 				
-				printk("Pool stats request\n");
+				//printk("Pool stats request\n");
 				
 				page = get_mpage(vcpu->kvm, op->u.gen.gmfn);
 				if(IS_ERR_OR_NULL(page)){

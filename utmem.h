@@ -96,6 +96,34 @@ struct tmem_client{
 	//atomic_t ssd_uptodate;
 };
 
+struct tmem_pool_stats {
+
+        int mem_weight;
+        int ssd_weight;
+
+        unsigned mem_entitlement;
+        unsigned ssd_entitlement;
+
+        unsigned mem_used;
+        unsigned ssd_used;
+
+        unsigned get_requests;
+
+        unsigned mem_puts;
+        unsigned ssd_puts;
+
+        unsigned mem_gets;
+        unsigned ssd_gets;
+
+        unsigned mem_flushes;
+        unsigned ssd_flushes;
+
+        unsigned mem_evicts;
+        unsigned ssd_evicts;
+
+        unsigned move_mem_to_ssd;
+        unsigned move_ssd_to_mem;
+};
 
 struct global_info{
 
