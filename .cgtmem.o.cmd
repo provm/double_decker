@@ -1,1 +1,0 @@
-cmd_/home/deba/prashanth/tmem_module-5.0/cgtmem.o := ld -m elf_x86_64   -r -o /home/deba/prashanth/tmem_module-5.0/cgtmem.o /home/deba/prashanth/tmem_module-5.0/tmem.o /home/deba/prashanth/tmem_module-5.0/utmem.o /home/deba/prashanth/tmem_module-5.0/tcache.o 

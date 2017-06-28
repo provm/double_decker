@@ -1,0 +1,1181 @@
+diff -u5 -rNX exclude-linux linux-4.1.3/include/linux/cgroup.h linux-4.1.3.changed/include/linux/cgroup.h
+--- linux-4.1.3/include/linux/cgroup.h	2015-07-21 22:40:33.000000000 +0530
++++ linux-4.1.3.changed/include/linux/cgroup.h	2017-06-28 15:50:38.068409000 +0530
+@@ -46,10 +46,39 @@
+ #include <linux/cgroup_subsys.h>
+ 	CGROUP_SUBSYS_COUNT,
+ };
+ #undef SUBSYS
+ 
++struct tmem_pool_stats {
++
++        int mem_weight;
++        int ssd_weight;
++
++        unsigned mem_entitlement;
++        unsigned ssd_entitlement;
++
++        unsigned mem_used;
++        unsigned ssd_used;
++
++        unsigned get_requests;
++
++        unsigned mem_puts;
++        unsigned ssd_puts;
++
++        unsigned mem_gets;
++        unsigned ssd_gets;
++
++        unsigned mem_flushes;
++        unsigned ssd_flushes;
++
++        unsigned mem_evicts;
++        unsigned ssd_evicts;
++
++        unsigned move_mem_to_ssd;
++        unsigned move_ssd_to_mem;
++};
++
+ /*
+  * Per-subsystem/per-cgroup state maintained by the system.  This is the
+  * fundamental structural building block that controllers deal with.
+  *
+  * Fields marked with "PI:" are public and immutable and may be accessed
+@@ -265,10 +294,14 @@
+ 	/* used to wait for offlining of csses */
+ 	wait_queue_head_t offline_waitq;
+ 
+ 	/* used to schedule release agent */
+ 	struct work_struct release_agent_work;
++
++        /*CGroup Clean cache storage door*/
++        int cleancache_poolid;
++        int cc_weight;
+ };
+ 
+ #define MAX_CGROUP_ROOT_NAMELEN 64
+ 
+ /* cgroup_root->flags */
+@@ -938,11 +971,11 @@
+ 
+ struct cgroup_subsys_state *cgroup_get_e_css(struct cgroup *cgroup,
+ 					     struct cgroup_subsys *ss);
+ struct cgroup_subsys_state *css_tryget_online_from_dir(struct dentry *dentry,
+ 						       struct cgroup_subsys *ss);
+-
++extern struct cgroup_subsys *find_subsys_from_root(struct cgroup_root *root);
+ #else /* !CONFIG_CGROUPS */
+ 
+ struct cgroup_subsys_state;
+ 
+ static inline int cgroup_init_early(void) { return 0; }
+diff -u5 -rNX exclude-linux linux-4.1.3/include/linux/cleancache.h linux-4.1.3.changed/include/linux/cleancache.h
+--- linux-4.1.3/include/linux/cleancache.h	2015-07-21 22:40:33.000000000 +0530
++++ linux-4.1.3.changed/include/linux/cleancache.h	2017-06-28 17:51:01.315674000 +0530
+@@ -2,10 +2,12 @@
+ #define _LINUX_CLEANCACHE_H
+ 
+ #include <linux/fs.h>
+ #include <linux/exportfs.h>
+ #include <linux/mm.h>
++#include <linux/cgroup.h>
++#include <linux/memcontrol.h>
+ 
+ #define CLEANCACHE_NO_POOL		-1
+ #define CLEANCACHE_NO_BACKEND		-2
+ #define CLEANCACHE_NO_BACKEND_SHARED	-3
+ 
+@@ -28,13 +30,13 @@
+ struct cleancache_ops {
+ 	int (*init_fs)(size_t);
+ 	int (*init_shared_fs)(char *uuid, size_t);
+ 	int (*get_page)(int, struct cleancache_filekey,
+ 			pgoff_t, struct page *);
+-	void (*put_page)(int, struct cleancache_filekey,
++	int (*put_page)(int, struct cleancache_filekey,
+ 			pgoff_t, struct page *);
+-	void (*invalidate_page)(int, struct cleancache_filekey, pgoff_t);
++	int (*invalidate_page)(int, struct cleancache_filekey, pgoff_t);
+ 	void (*invalidate_inode)(int, struct cleancache_filekey);
+ 	void (*invalidate_fs)(int);
+ };
+ 
+ extern int cleancache_register_ops(struct cleancache_ops *ops);
+@@ -60,10 +62,149 @@
+ #define cleancache_enabled (0)
+ #define cleancache_fs_enabled(_page) (0)
+ #define cleancache_fs_enabled_mapping(_page) (0)
+ #endif
+ 
++
++
++
++/* CGroup implementation and access for second chance
++   backend implementations*/
++struct cleancache_cgops {
++	int (*init_cg)(struct cgroup *, size_t);
++	int (*get_page)(int, struct cleancache_filekey,
++			pgoff_t, struct page *);
++	int (*put_page)(int, struct cleancache_filekey,
++			pgoff_t, struct page *);
++	int (*invalidate_page)(int, struct cleancache_filekey, pgoff_t);
++	void (*invalidate_inode)(struct cleancache_filekey);
++	void (*cg_weight_set)(struct cgroup *, u64);
++	void (*cg_pool_stats)(struct cgroup *, struct page *);
++	void (*invalidate_cg)(struct cgroup *);
++};
++
++extern int cleancache_register_cgops(struct cleancache_cgops *ops);
++extern void __cleancache_init_cg(struct cgroup *);
++extern int  __cleancache_cg_get_page(struct page *, int);
++extern void __cleancache_cg_put_page(struct page *, int);
++extern void __cleancache_cg_invalidate_page(struct address_space *, struct page *, int);
++extern void __cleancache_cg_invalidate_inode(struct address_space *);
++extern void __cleancache_cg_weight_changed(struct cgroup *, u64);
++extern void __cleancache_cg_pool_stats(struct cgroup *, struct page *);
++extern void __cleancache_invalidate_cg(struct cgroup *);
++
++
++#ifdef CONFIG_CGCLEANCACHE
++struct mem_cgroup;
++#define cleancache_cg (1)
++
++static inline struct cgroup* page_to_cgroup(struct page *page)
++{
++   if(likely(page && page->mem_cgroup))
++       return memcg_to_cg(page->mem_cgroup); 
++   printk(KERN_INFO "page_to_cg returns NULL\n");
++   return NULL;
++}
++
++
++static inline int cleancache_cg_enabled(struct page *page)
++{
++        struct cgroup *cg = page_to_cgroup(page);
++ 
++        if(cg && cg->cleancache_poolid >= 0)
++	    return cg->cleancache_poolid;
++
++//        printk(KERN_INFO "poolid may be less than zero\n");
++        return -1;
++}
++
++#else
++#define cleancache_cg (0)
++static inline int cleancache_cg_enabled(struct page *page)
++{
++  return 0;
++}
++#endif
++
++static inline void cleancache_init_cg(struct cgroup *cg)
++{
++    //char buff[512];
++//    char *ptr;
++    struct cgroup_root *cgroot;
++    struct cgroup_subsys *ss;
++
++    if(!cleancache_cg || !cg)
++         goto out;
++//    ptr = cgroup_path(cg, buff, 512);
++//    printk(KERN_INFO "InitCG %s:%s for Cgroup %s\n",__FILE__,__func__,ptr);
++    cgroot = cg->root;
++    if(!cgroot || cgroot == &cgrp_dfl_root)
++          goto out;
++//    printk(KERN_INFO "hierID=%d mask=%x\n", cgroot->hierarchy_id, cgroot->subsys_mask); 
++    ss = find_subsys_from_root(cgroot);
++    if(!ss || !ss->name)
++           goto out;
++//    printk(KERN_INFO "subsys name = %s\n",ss->name);
++    if(strcmp(ss->name, "memory"))
++           goto out;
++    __cleancache_init_cg(cg);
++  out:
++      return;
++}
++
++
++static inline int cleancache_cg_get_page(struct page *page)
++{
++	int ret = -1;
++        
++    //    printk(KERN_INFO "Called %s:%s cccg=%d pool_id=%d\n",__FILE__,__func__,cleancache_cg, cleancache_cg_enabled(page));
++	if (cleancache_cg && (ret = cleancache_cg_enabled(page)) >= 0)
++		ret = __cleancache_cg_get_page(page, ret);
++	return ret;
++}
++
++static inline void cleancache_cg_put_page(struct page *page)
++{
++	int ret = -1;
++   //     printk(KERN_INFO "Called %s:%s cccg=%d pollid=%d\n",__FILE__,__func__,cleancache_cg, cleancache_cg_enabled(page));
++	if (cleancache_cg && (ret = cleancache_cg_enabled(page)) >= 0)
++		__cleancache_cg_put_page(page, ret);
++}
++
++static inline void cleancache_cg_invalidate_page(struct address_space *mapping,
++					struct page *page)
++{
++	int ret = -1;
++	/* careful... page->mapping is NULL sometimes when this is called */
++	if (cleancache_cg && (ret = cleancache_cg_enabled(page)) >= 0)
++		__cleancache_cg_invalidate_page(mapping, page, ret);
++}
++
++static inline void cleancache_cg_invalidate_inode(struct address_space *mapping)
++{
++	if (cleancache_cg)
++		__cleancache_cg_invalidate_inode(mapping);
++}
++
++static inline void cleancache_cg_weight_changed(struct cgroup *cg, u64 val)
++{
++	if (cleancache_cg && cg->cleancache_poolid >= 0)
++		__cleancache_cg_weight_changed(cg, val);
++
++}
++static inline void cleancache_cg_pool_stats(struct cgroup *cg, 
++				struct page *page)
++{
++	if (cleancache_cg && cg->cleancache_poolid >= 0)
++		return __cleancache_cg_pool_stats(cg, page);
++}
++static inline void cleancache_invalidate_cg(struct cgroup *cg)
++{
++      if(cleancache_cg && cg && cg->cleancache_poolid >= 0)
++               __cleancache_invalidate_cg(cg);
++}
++
+ /*
+  * The shim layer provided by these inline functions allows the compiler
+  * to reduce all cleancache hooks to nothingness if CONFIG_CLEANCACHE
+  * is disabled, to a single global variable check if CONFIG_CLEANCACHE
+  * is enabled but no cleancache "backend" has dynamically enabled it,
+diff -u5 -rNX exclude-linux linux-4.1.3/include/linux/memcontrol.h linux-4.1.3.changed/include/linux/memcontrol.h
+--- linux-4.1.3/include/linux/memcontrol.h	2015-07-21 22:40:33.000000000 +0530
++++ linux-4.1.3.changed/include/linux/memcontrol.h	2016-08-26 21:31:16.911494000 +0530
+@@ -94,10 +94,11 @@
+ extern struct mem_cgroup *try_get_mem_cgroup_from_page(struct page *page);
+ extern struct mem_cgroup *mem_cgroup_from_task(struct task_struct *p);
+ 
+ extern struct mem_cgroup *parent_mem_cgroup(struct mem_cgroup *memcg);
+ extern struct mem_cgroup *mem_cgroup_from_css(struct cgroup_subsys_state *css);
++extern struct cgroup* memcg_to_cg(struct mem_cgroup *);
+ 
+ static inline bool mm_match_cgroup(struct mm_struct *mm,
+ 				   struct mem_cgroup *memcg)
+ {
+ 	struct mem_cgroup *task_memcg;
+diff -u5 -rNX exclude-linux linux-4.1.3/kernel/cgroup.c linux-4.1.3.changed/kernel/cgroup.c
+--- linux-4.1.3/kernel/cgroup.c	2015-07-21 22:40:33.000000000 +0530
++++ linux-4.1.3.changed/kernel/cgroup.c	2017-06-28 15:50:36.792409000 +0530
+@@ -57,10 +57,11 @@
+ #include <linux/vmalloc.h> /* TODO: replace with more sophisticated array */
+ #include <linux/kthread.h>
+ #include <linux/delay.h>
+ 
+ #include <linux/atomic.h>
++#include <linux/cleancache.h>
+ 
+ /*
+  * pidlists linger the following amount before being destroyed.  The goal
+  * is avoiding frequent destruction in the middle of consecutive read calls
+  * Expiring in the middle is a performance problem not a correctness one.
+@@ -1869,10 +1870,12 @@
+ 
+ 	ret = cgroup_setup_root(root, opts.subsys_mask);
+ 	if (ret)
+ 		cgroup_free_root(root);
+ 
++        root->cgrp.cleancache_poolid = CLEANCACHE_NO_BACKEND;
++
+ out_unlock:
+ 	mutex_unlock(&cgroup_mutex);
+ out_free:
+ 	kfree(opts.release_agent);
+ 	kfree(opts.name);
+@@ -1962,10 +1965,22 @@
+ 	mutex_unlock(&cgroup_mutex);
+ 	return path;
+ }
+ EXPORT_SYMBOL_GPL(task_cgroup_path);
+ 
++/*Match the root with first subsystem set*/
++struct cgroup_subsys *find_subsys_from_root(struct cgroup_root *root)
++{
++	int ssid;
++	struct cgroup_subsys *ss;
++
++	for_each_subsys(ss, ssid)
++		if (root->subsys_mask & (1 << ssid))
++                        return ss;
++        return NULL;
++}
++EXPORT_SYMBOL(find_subsys_from_root);
+ /* used to track tasks and other necessary states during migration */
+ struct cgroup_taskset {
+ 	/* the src and dst cset list running through cset->mg_node */
+ 	struct list_head	src_csets;
+ 	struct list_head	dst_csets;
+@@ -4213,10 +4228,74 @@
+ 	else
+ 		clear_bit(CGRP_NOTIFY_ON_RELEASE, &css->cgroup->flags);
+ 	return 0;
+ }
+ 
++static s64 cgroup_read_hcache_poolid(struct cgroup_subsys_state *css,
++                                         struct cftype *cft)
++{
++        return css->cgroup->cleancache_poolid;
++}
++
++
++static s64 cgroup_read_hcache_weight(struct cgroup_subsys_state *css,
++                                         struct cftype *cft)
++{
++        return css->cgroup->cc_weight;
++}
++
++static int cgroup_read_hcache_stats(struct seq_file *m,
++                                        void *v)
++{
++	struct cgroup_subsys_state *css;
++	unsigned long page_va; 
++	struct page *page;
++	struct tmem_pool_stats *stats;
++	
++	css = seq_css(m);
++	
++	page_va = get_zeroed_page(GFP_ATOMIC);
++	page = virt_to_page(page_va);
++	stats = (struct tmem_pool_stats*) page_va; 
++        
++	cleancache_cg_pool_stats(css->cgroup, page);
++
++	seq_printf(m, "Get requests: %u\n", stats->get_requests);
++	seq_printf(m, "Memory cache stats\n");
++	seq_printf(m, "\tLimit: %u\n", stats->mem_entitlement);
++	seq_printf(m, "\tUsed: %u\n", stats->mem_used);
++	seq_printf(m, "\tGets: %u\n", stats->mem_gets);
++	seq_printf(m, "\tPuts: %u\n", stats->mem_puts);
++	seq_printf(m, "\tFlushes: %u\n", stats->mem_flushes);
++	seq_printf(m, "\tEvicts: %u\n", stats->mem_evicts);
++	seq_printf(m, "\tDemotions: %u\n", stats->move_mem_to_ssd);
++	
++	seq_printf(m, "SSD cache stats \n");
++	seq_printf(m, "\tLimit: %u\n", stats->ssd_entitlement);
++	seq_printf(m, "\tUsed: %u\n", stats->ssd_used);
++	seq_printf(m, "\tGets: %u\n", stats->ssd_gets);
++	seq_printf(m, "\tPuts: %u\n", stats->ssd_puts);
++	seq_printf(m, "\tFlushes: %u\n", stats->ssd_flushes);
++	seq_printf(m, "\tEvicts: %u\n", stats->ssd_evicts);
++	seq_printf(m, "\tPromotions: %u\n", stats->move_ssd_to_mem);
++
++	__free_page(page);
++	
++        return 0;
++}
++
++static int cgroup_write_hcache_weight(struct cgroup_subsys_state *css,
++                                          struct cftype *cft, u64 val)
++{
++        if (val >=0 && (val % 1000) <= 100 && css->cgroup->cc_weight != val)
++                cleancache_cg_weight_changed(css->cgroup, val);
++        else
++                return -1;
++        return 0;
++}
++
++
+ static u64 cgroup_clone_children_read(struct cgroup_subsys_state *css,
+ 				      struct cftype *cft)
+ {
+ 	return test_bit(CGRP_CPUSET_CLONE_CHILDREN, &css->cgroup->flags);
+ }
+@@ -4308,10 +4387,23 @@
+ 		.flags = CFTYPE_ONLY_ON_ROOT,
+ 		.seq_show = cgroup_release_agent_show,
+ 		.write = cgroup_release_agent_write,
+ 		.max_write_len = PATH_MAX - 1,
+ 	},
++	{
++		.name = "hcache_weight",
++		.read_s64 = cgroup_read_hcache_weight,
++		.write_u64 = cgroup_write_hcache_weight,
++	},
++	{
++		.name = "hcache_stats",
++		.seq_show = cgroup_read_hcache_stats,
++	},
++        {
++                .name = "hcache_poolid",    
++		.read_s64 = cgroup_read_hcache_poolid,
++        },
+ 	{ }	/* terminate */
+ };
+ 
+ /**
+  * cgroup_populate_dir - create subsys files in a cgroup directory
+@@ -4621,11 +4713,11 @@
+ 	cgrp = kzalloc(sizeof(*cgrp), GFP_KERNEL);
+ 	if (!cgrp) {
+ 		ret = -ENOMEM;
+ 		goto out_unlock;
+ 	}
+-
++        cgrp->cleancache_poolid = CLEANCACHE_NO_BACKEND;
+ 	ret = percpu_ref_init(&cgrp->self.refcnt, css_release, 0, GFP_KERNEL);
+ 	if (ret)
+ 		goto out_free_cgrp;
+ 
+ 	/*
+@@ -4709,10 +4801,11 @@
+ 	}
+ 
+ 	kernfs_activate(kn);
+ 
+ 	ret = 0;
++        cleancache_init_cg(cgrp);
+ 	goto out_unlock;
+ 
+ out_free_id:
+ 	cgroup_idr_remove(&root->cgroup_idr, cgrp->id);
+ out_cancel_ref:
+@@ -4875,10 +4968,12 @@
+ 
+ 	cgrp = cgroup_kn_lock_live(kn);
+ 	if (!cgrp)
+ 		return 0;
+ 
++        cleancache_invalidate_cg(cgrp);
++
+ 	ret = cgroup_destroy_locked(cgrp);
+ 
+ 	cgroup_kn_unlock(kn);
+ 	return ret;
+ }
+diff -u5 -rNX exclude-linux linux-4.1.3/kernel/debug/kdb/gen-kdb_cmds.c linux-4.1.3.changed/kernel/debug/kdb/gen-kdb_cmds.c
+--- linux-4.1.3/kernel/debug/kdb/gen-kdb_cmds.c	1970-01-01 05:30:00.000000000 +0530
++++ linux-4.1.3.changed/kernel/debug/kdb/gen-kdb_cmds.c	2016-08-28 17:59:52.917563000 +0530
+@@ -0,0 +1,43 @@
++#include <linux/stddef.h>
++#include <linux/init.h>
++static __initdata char kdb_cmd0[] = "defcmd dumpcommon \"\" \"Common kdb debugging\"\n";
++static __initdata char kdb_cmd1[] = "  set BTAPROMPT 0\n";
++static __initdata char kdb_cmd2[] = "  set LINES 10000\n";
++static __initdata char kdb_cmd3[] = "  -summary\n";
++static __initdata char kdb_cmd4[] = "  -cpu\n";
++static __initdata char kdb_cmd5[] = "  -ps\n";
++static __initdata char kdb_cmd6[] = "  -dmesg 600\n";
++static __initdata char kdb_cmd7[] = "  -bt\n";
++static __initdata char kdb_cmd8[] = "endefcmd\n";
++static __initdata char kdb_cmd9[] = "defcmd dumpall \"\" \"First line debugging\"\n";
++static __initdata char kdb_cmd10[] = "  pid R\n";
++static __initdata char kdb_cmd11[] = "  -dumpcommon\n";
++static __initdata char kdb_cmd12[] = "  -bta\n";
++static __initdata char kdb_cmd13[] = "endefcmd\n";
++static __initdata char kdb_cmd14[] = "defcmd dumpcpu \"\" \"Same as dumpall but only tasks on cpus\"\n";
++static __initdata char kdb_cmd15[] = "  pid R\n";
++static __initdata char kdb_cmd16[] = "  -dumpcommon\n";
++static __initdata char kdb_cmd17[] = "  -btc\n";
++static __initdata char kdb_cmd18[] = "endefcmd\n";
++extern char *kdb_cmds[]; char __initdata *kdb_cmds[] = {
++  kdb_cmd0,
++  kdb_cmd1,
++  kdb_cmd2,
++  kdb_cmd3,
++  kdb_cmd4,
++  kdb_cmd5,
++  kdb_cmd6,
++  kdb_cmd7,
++  kdb_cmd8,
++  kdb_cmd9,
++  kdb_cmd10,
++  kdb_cmd11,
++  kdb_cmd12,
++  kdb_cmd13,
++  kdb_cmd14,
++  kdb_cmd15,
++  kdb_cmd16,
++  kdb_cmd17,
++  kdb_cmd18,
++  NULL
++};
+diff -u5 -rNX exclude-linux linux-4.1.3/kernel/locking/locktorture.mod.c linux-4.1.3.changed/kernel/locking/locktorture.mod.c
+--- linux-4.1.3/kernel/locking/locktorture.mod.c	1970-01-01 05:30:00.000000000 +0530
++++ linux-4.1.3.changed/kernel/locking/locktorture.mod.c	2016-09-09 00:16:12.768222000 +0530
+@@ -0,0 +1,80 @@
++#include <linux/module.h>
++#include <linux/vermagic.h>
++#include <linux/compiler.h>
++
++MODULE_INFO(vermagic, VERMAGIC_STRING);
++
++__visible struct module __this_module
++__attribute__((section(".gnu.linkonce.this_module"))) = {
++	.name = KBUILD_MODNAME,
++	.init = init_module,
++#ifdef CONFIG_MODULE_UNLOAD
++	.exit = cleanup_module,
++#endif
++	.arch = MODULE_ARCH_INIT,
++};
++
++MODULE_INFO(intree, "Y");
++
++static const struct modversion_info ____versions[]
++__used
++__attribute__((section("__versions"))) = {
++	{ 0xaf3631aa, __VMLINUX_SYMBOL_STR(module_layout) },
++	{ 0x60ee9172, __VMLINUX_SYMBOL_STR(param_ops_bool) },
++	{ 0x62a79a6c, __VMLINUX_SYMBOL_STR(param_ops_charp) },
++	{ 0x51eafc8e, __VMLINUX_SYMBOL_STR(param_ops_int) },
++	{ 0xe2065c3, __VMLINUX_SYMBOL_STR(_torture_create_kthread) },
++	{ 0xe9ff1468, __VMLINUX_SYMBOL_STR(torture_stutter_init) },
++	{ 0xdbc5277a, __VMLINUX_SYMBOL_STR(torture_shutdown_init) },
++	{ 0x8b0e1d2f, __VMLINUX_SYMBOL_STR(torture_shuffle_init) },
++	{ 0x6bdeda8f, __VMLINUX_SYMBOL_STR(torture_onoff_init) },
++	{ 0x63c4d61f, __VMLINUX_SYMBOL_STR(__bitmap_weight) },
++	{ 0xbd100793, __VMLINUX_SYMBOL_STR(cpu_online_mask) },
++	{ 0xe6989fd3, __VMLINUX_SYMBOL_STR(torture_init_end) },
++	{ 0xe2d5255a, __VMLINUX_SYMBOL_STR(strcmp) },
++	{ 0xc6527045, __VMLINUX_SYMBOL_STR(torture_init_begin) },
++	{ 0x1be7d8be, __VMLINUX_SYMBOL_STR(torture_onoff_failures) },
++	{ 0x688e6a64, __VMLINUX_SYMBOL_STR(torture_cleanup_end) },
++	{ 0x8a410c63, __VMLINUX_SYMBOL_STR(_torture_stop_kthread) },
++	{ 0xc67a49d4, __VMLINUX_SYMBOL_STR(torture_cleanup_begin) },
++	{ 0x4c7529bd, __VMLINUX_SYMBOL_STR(torture_shutdown_absorb) },
++	{ 0x9c55cec, __VMLINUX_SYMBOL_STR(schedule_timeout_interruptible) },
++	{ 0x37a0cba, __VMLINUX_SYMBOL_STR(kfree) },
++	{ 0xd2b09ce5, __VMLINUX_SYMBOL_STR(__kmalloc) },
++	{ 0xd52bf1ce, __VMLINUX_SYMBOL_STR(_raw_spin_lock) },
++	{ 0xda3e43d1, __VMLINUX_SYMBOL_STR(_raw_spin_unlock) },
++	{ 0x9327f5ce, __VMLINUX_SYMBOL_STR(_raw_spin_lock_irqsave) },
++	{ 0x8f64aa4, __VMLINUX_SYMBOL_STR(_raw_spin_unlock_irqrestore) },
++	{ 0x143687b2, __VMLINUX_SYMBOL_STR(_raw_write_lock) },
++	{ 0x8b900f3b, __VMLINUX_SYMBOL_STR(_raw_read_lock) },
++	{ 0xaf669f2d, __VMLINUX_SYMBOL_STR(_raw_write_lock_irqsave) },
++	{ 0x30693302, __VMLINUX_SYMBOL_STR(_raw_read_lock_irqsave) },
++	{ 0xe70c9ab0, __VMLINUX_SYMBOL_STR(_raw_write_unlock_irqrestore) },
++	{ 0x5df5b710, __VMLINUX_SYMBOL_STR(mutex_lock) },
++	{ 0x49888b76, __VMLINUX_SYMBOL_STR(mutex_unlock) },
++	{ 0x5ab3dbdb, __VMLINUX_SYMBOL_STR(down_write) },
++	{ 0xa0880478, __VMLINUX_SYMBOL_STR(up_write) },
++	{ 0xb2753f42, __VMLINUX_SYMBOL_STR(down_read) },
++	{ 0xeae3dfd6, __VMLINUX_SYMBOL_STR(__const_udelay) },
++	{ 0x8697ff5c, __VMLINUX_SYMBOL_STR(up_read) },
++	{ 0x9f46ced8, __VMLINUX_SYMBOL_STR(__sw_hweight64) },
++	{ 0x16305289, __VMLINUX_SYMBOL_STR(warn_slowpath_null) },
++	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
++	{ 0xf6d34fb5, __VMLINUX_SYMBOL_STR(torture_kthread_stopping) },
++	{ 0xd0ee38b8, __VMLINUX_SYMBOL_STR(schedule_timeout_uninterruptible) },
++	{ 0x52665f8b, __VMLINUX_SYMBOL_STR(torture_random) },
++	{ 0x679d9e50, __VMLINUX_SYMBOL_STR(torture_must_stop) },
++	{ 0x6364b2f0, __VMLINUX_SYMBOL_STR(stutter_wait) },
++	{ 0x2c484aa, __VMLINUX_SYMBOL_STR(set_user_nice) },
++	{ 0x6b9ea7fb, __VMLINUX_SYMBOL_STR(current_task) },
++	{ 0x91715312, __VMLINUX_SYMBOL_STR(sprintf) },
++	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
++};
++
++static const char __module_depends[]
++__used
++__attribute__((section(".modinfo"))) =
++"depends=torture";
++
++
++MODULE_INFO(srcversion, "55DA222576AA86C0DB84F89");
+diff -u5 -rNX exclude-linux linux-4.1.3/kernel/time/hz.bc linux-4.1.3.changed/kernel/time/hz.bc
+--- linux-4.1.3/kernel/time/hz.bc	1970-01-01 05:30:00.000000000 +0530
++++ linux-4.1.3.changed/kernel/time/hz.bc	2016-08-28 18:00:23.445563000 +0530
+@@ -0,0 +1 @@
++hz=250
+diff -u5 -rNX exclude-linux linux-4.1.3/kernel/time/test_udelay.mod.c linux-4.1.3.changed/kernel/time/test_udelay.mod.c
+--- linux-4.1.3/kernel/time/test_udelay.mod.c	1970-01-01 05:30:00.000000000 +0530
++++ linux-4.1.3.changed/kernel/time/test_udelay.mod.c	2016-09-09 00:16:12.768222000 +0530
+@@ -0,0 +1,49 @@
++#include <linux/module.h>
++#include <linux/vermagic.h>
++#include <linux/compiler.h>
++
++MODULE_INFO(vermagic, VERMAGIC_STRING);
++
++__visible struct module __this_module
++__attribute__((section(".gnu.linkonce.this_module"))) = {
++	.name = KBUILD_MODNAME,
++	.init = init_module,
++#ifdef CONFIG_MODULE_UNLOAD
++	.exit = cleanup_module,
++#endif
++	.arch = MODULE_ARCH_INIT,
++};
++
++MODULE_INFO(intree, "Y");
++
++static const struct modversion_info ____versions[]
++__used
++__attribute__((section("__versions"))) = {
++	{ 0xaf3631aa, __VMLINUX_SYMBOL_STR(module_layout) },
++	{ 0x5f316882, __VMLINUX_SYMBOL_STR(single_release) },
++	{ 0xf4caf4c1, __VMLINUX_SYMBOL_STR(seq_read) },
++	{ 0x62cf4c61, __VMLINUX_SYMBOL_STR(seq_lseek) },
++	{ 0x47db3102, __VMLINUX_SYMBOL_STR(debugfs_remove) },
++	{ 0x543cc647, __VMLINUX_SYMBOL_STR(debugfs_create_file) },
++	{ 0x16305289, __VMLINUX_SYMBOL_STR(warn_slowpath_null) },
++	{ 0x9e7d6bd0, __VMLINUX_SYMBOL_STR(__udelay) },
++	{ 0x3fb8a666, __VMLINUX_SYMBOL_STR(seq_puts) },
++	{ 0x91831d70, __VMLINUX_SYMBOL_STR(seq_printf) },
++	{ 0xba497f13, __VMLINUX_SYMBOL_STR(loops_per_jiffy) },
++	{ 0xd56b5f64, __VMLINUX_SYMBOL_STR(ktime_get_ts64) },
++	{ 0xdb7305a1, __VMLINUX_SYMBOL_STR(__stack_chk_fail) },
++	{ 0x49888b76, __VMLINUX_SYMBOL_STR(mutex_unlock) },
++	{ 0x5df5b710, __VMLINUX_SYMBOL_STR(mutex_lock) },
++	{ 0x20c55ae0, __VMLINUX_SYMBOL_STR(sscanf) },
++	{ 0x4f6b400b, __VMLINUX_SYMBOL_STR(_copy_from_user) },
++	{ 0xd03c16ec, __VMLINUX_SYMBOL_STR(single_open) },
++	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
++};
++
++static const char __module_depends[]
++__used
++__attribute__((section(".modinfo"))) =
++"depends=";
++
++
++MODULE_INFO(srcversion, "C2347536028E33D5078EC0F");
+diff -u5 -rNX exclude-linux linux-4.1.3/kernel/time/timeconst.h linux-4.1.3.changed/kernel/time/timeconst.h
+--- linux-4.1.3/kernel/time/timeconst.h	1970-01-01 05:30:00.000000000 +0530
++++ linux-4.1.3.changed/kernel/time/timeconst.h	2016-08-28 18:00:23.505563000 +0530
+@@ -0,0 +1,36 @@
++/* Automatically generated by kernel/timeconst.bc */
++/* Time conversion constants for HZ == 250 */
++
++#ifndef KERNEL_TIMECONST_H
++#define KERNEL_TIMECONST_H
++
++#include <linux/param.h>
++#include <linux/types.h>
++
++#if HZ != 250
++#error "kernel/timeconst.h has the wrong HZ value!"
++#endif
++
++#define HZ_TO_MSEC_MUL32	U64_C(0x80000000)
++#define HZ_TO_MSEC_ADJ32	U64_C(0x0)
++#define HZ_TO_MSEC_SHR32	29
++#define MSEC_TO_HZ_MUL32	U64_C(0x80000000)
++#define MSEC_TO_HZ_ADJ32	U64_C(0x180000000)
++#define MSEC_TO_HZ_SHR32	33
++#define HZ_TO_MSEC_NUM		4
++#define HZ_TO_MSEC_DEN		1
++#define MSEC_TO_HZ_NUM		1
++#define MSEC_TO_HZ_DEN		4
++
++#define HZ_TO_USEC_MUL32	U64_C(0xFA000000)
++#define HZ_TO_USEC_ADJ32	U64_C(0x0)
++#define HZ_TO_USEC_SHR32	20
++#define USEC_TO_HZ_MUL32	U64_C(0x83126E98)
++#define USEC_TO_HZ_ADJ32	U64_C(0x7FF7CED9168)
++#define USEC_TO_HZ_SHR32	43
++#define HZ_TO_USEC_NUM		4000
++#define HZ_TO_USEC_DEN		1
++#define USEC_TO_HZ_NUM		1
++#define USEC_TO_HZ_DEN		4000
++
++#endif /* KERNEL_TIMECONST_H */
+diff -u5 -rNX exclude-linux linux-4.1.3/kernel/torture.mod.c linux-4.1.3.changed/kernel/torture.mod.c
+--- linux-4.1.3/kernel/torture.mod.c	1970-01-01 05:30:00.000000000 +0530
++++ linux-4.1.3.changed/kernel/torture.mod.c	2016-09-09 00:16:12.768222000 +0530
+@@ -0,0 +1,60 @@
++#include <linux/module.h>
++#include <linux/vermagic.h>
++#include <linux/compiler.h>
++
++MODULE_INFO(vermagic, VERMAGIC_STRING);
++
++__visible struct module __this_module
++__attribute__((section(".gnu.linkonce.this_module"))) = {
++	.name = KBUILD_MODNAME,
++	.arch = MODULE_ARCH_INIT,
++};
++
++MODULE_INFO(intree, "Y");
++
++static const struct modversion_info ____versions[]
++__used
++__attribute__((section("__versions"))) = {
++	{ 0xaf3631aa, __VMLINUX_SYMBOL_STR(module_layout) },
++	{ 0x7cb1ae69, __VMLINUX_SYMBOL_STR(cpu_down) },
++	{ 0x262f20a8, __VMLINUX_SYMBOL_STR(local_clock) },
++	{ 0xc9d05ad7, __VMLINUX_SYMBOL_STR(kmalloc_caches) },
++	{ 0xd0ee38b8, __VMLINUX_SYMBOL_STR(schedule_timeout_uninterruptible) },
++	{ 0xbd100793, __VMLINUX_SYMBOL_STR(cpu_online_mask) },
++	{ 0xc0a3d105, __VMLINUX_SYMBOL_STR(find_next_bit) },
++	{ 0x49888b76, __VMLINUX_SYMBOL_STR(mutex_unlock) },
++	{ 0x6fc306bc, __VMLINUX_SYMBOL_STR(kthread_create_on_node) },
++	{ 0x7d11c268, __VMLINUX_SYMBOL_STR(jiffies) },
++	{ 0xfe7c4287, __VMLINUX_SYMBOL_STR(nr_cpu_ids) },
++	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
++	{ 0x11e15dab, __VMLINUX_SYMBOL_STR(kthread_stop) },
++	{ 0x56d697ce, __VMLINUX_SYMBOL_STR(cpu_up) },
++	{ 0xa1c76e0a, __VMLINUX_SYMBOL_STR(_cond_resched) },
++	{ 0x3de9b436, __VMLINUX_SYMBOL_STR(set_cpus_allowed_ptr) },
++	{ 0x16305289, __VMLINUX_SYMBOL_STR(warn_slowpath_null) },
++	{ 0x5df5b710, __VMLINUX_SYMBOL_STR(mutex_lock) },
++	{ 0xac1a55be, __VMLINUX_SYMBOL_STR(unregister_reboot_notifier) },
++	{ 0x2ebe3135, __VMLINUX_SYMBOL_STR(cpu_is_hotpluggable) },
++	{ 0x3517383e, __VMLINUX_SYMBOL_STR(register_reboot_notifier) },
++	{ 0xdb7305a1, __VMLINUX_SYMBOL_STR(__stack_chk_fail) },
++	{ 0xd7d79132, __VMLINUX_SYMBOL_STR(put_online_cpus) },
++	{ 0xb450f8cc, __VMLINUX_SYMBOL_STR(wake_up_process) },
++	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
++	{ 0x3efb35c9, __VMLINUX_SYMBOL_STR(get_online_cpus) },
++	{ 0x5c176ac7, __VMLINUX_SYMBOL_STR(kmem_cache_alloc_trace) },
++	{ 0xb3f7646e, __VMLINUX_SYMBOL_STR(kthread_should_stop) },
++	{ 0x9c55cec, __VMLINUX_SYMBOL_STR(schedule_timeout_interruptible) },
++	{ 0x1eb9516e, __VMLINUX_SYMBOL_STR(round_jiffies_relative) },
++	{ 0x37a0cba, __VMLINUX_SYMBOL_STR(kfree) },
++	{ 0xf184d189, __VMLINUX_SYMBOL_STR(kernel_power_off) },
++	{ 0x63c4d61f, __VMLINUX_SYMBOL_STR(__bitmap_weight) },
++	{ 0x28318305, __VMLINUX_SYMBOL_STR(snprintf) },
++};
++
++static const char __module_depends[]
++__used
++__attribute__((section(".modinfo"))) =
++"depends=";
++
++
++MODULE_INFO(srcversion, "7756A37F7CA766B0DEB59C6");
+Binary files linux-4.1.3/kernel/x509_certificate_list and linux-4.1.3.changed/kernel/x509_certificate_list differ
+diff -u5 -rNX exclude-linux linux-4.1.3/kernel/.x509.list linux-4.1.3.changed/kernel/.x509.list
+--- linux-4.1.3/kernel/.x509.list	1970-01-01 05:30:00.000000000 +0530
++++ linux-4.1.3.changed/kernel/.x509.list	2016-08-28 18:00:53.025563000 +0530
+@@ -0,0 +1 @@
++signing_key.x509
+diff -u5 -rNX exclude-linux linux-4.1.3/Makefile linux-4.1.3.changed/Makefile
+--- linux-4.1.3/Makefile	2015-07-21 22:40:33.000000000 +0530
++++ linux-4.1.3.changed/Makefile	2016-08-28 17:51:12.821563000 +0530
+@@ -1,9 +1,9 @@
+ VERSION = 4
+ PATCHLEVEL = 1
+-SUBLEVEL = 3
+-EXTRAVERSION =
++SUBLEVEL = 5
++EXTRAVERSION = 
+ NAME = Series 4800
+ 
+ # *DOCUMENTATION*
+ # To see a list of typical targets execute "make help"
+ # More info can be located in ./README
+diff -u5 -rNX exclude-linux linux-4.1.3/mm/cleancache.c linux-4.1.3.changed/mm/cleancache.c
+--- linux-4.1.3/mm/cleancache.c	2015-07-21 22:40:33.000000000 +0530
++++ linux-4.1.3.changed/mm/cleancache.c	2017-06-27 19:23:44.146075000 +0530
+@@ -119,10 +119,11 @@
+ 		pool_id = cleancache_ops->init_fs(PAGE_SIZE);
+ 		if (pool_id < 0)
+ 			pool_id = CLEANCACHE_NO_POOL;
+ 	}
+ 	sb->cleancache_poolid = pool_id;
++        printk(KERN_INFO "cleancache initfs called and done pool returned = %d\n", pool_id);
+ }
+ EXPORT_SYMBOL(__cleancache_init_fs);
+ 
+ /* Called by a cleancache-enabled clustered filesystem at time of mount */
+ void __cleancache_init_shared_fs(struct super_block *sb)
+@@ -299,10 +300,207 @@
+ 	if (cleancache_ops && pool_id >= 0)
+ 		cleancache_ops->invalidate_fs(pool_id);
+ }
+ EXPORT_SYMBOL(__cleancache_invalidate_fs);
+ 
++
++static struct cleancache_cgops *cleancache_cgops __read_mostly;
++
++int cleancache_register_cgops(struct cleancache_cgops *ops)
++{
++   if(cleancache_cgops || cleancache_ops){
++         printk(KERN_INFO "Possible overlapping backends\n");
++         goto err_ret;
++   }
++   cleancache_cgops = ops;  
++   printk(KERN_INFO "CGOps registered\n");
++   return 0;
++err_ret:
++   return -EBUSY;
++}
++EXPORT_SYMBOL(cleancache_register_cgops);
++
++static  int atleast_one;
++
++static bool our_interest(char *buf)
++{
++   int i = 0;
++   const char *abc [] = {"lxc", "docker", "user", NULL};
++   while(abc[i]){
++         if(!strcmp(abc[i++],buf))
++                return true;
++   }
++  return false;
++}
++void __cleancache_init_cg(struct cgroup *cg)
++{
++        char buf[128]; 
++	int pool_id = CLEANCACHE_NO_BACKEND;
++        struct cgroup *parent = NULL; 
++        struct cgroup_subsys_state *parent_css;
++
++        if(!cleancache_cgops)
++                      goto out;
++        
++        parent_css = cg->self.parent;
++
++        if(!parent_css)
++                    goto out;
++        
++        parent = container_of(parent_css, struct cgroup, self);
++       
++        if(!parent)
++                     goto out;
++        cgroup_name(parent, buf, 128);
++   
++        if(!our_interest(buf))
++                goto out;
++
++  //      printk(KERN_INFO "Parent name = %s\n", buf);
++
++       
++        pool_id = cleancache_cgops->init_cg(cg, PAGE_SIZE);
++
++        if (pool_id < 0)
++	      pool_id = CLEANCACHE_NO_POOL;
++
++	cg->cleancache_poolid = pool_id;
++
++        cgroup_name(cg, buf, 128);
++
++        ++atleast_one;
++
++        printk(KERN_INFO "InitCG called for %s and retuned pool = %d\n",buf, cg->cleancache_poolid);
++
++out:
++      return;
++}
++EXPORT_SYMBOL(__cleancache_init_cg);
++
++int __cleancache_cg_get_page(struct page *page, int pool_id)
++{
++	int ret = -1;
++	struct cleancache_filekey key = { .u.key = { 0 } };
++  //      printk(KERN_INFO "InitCG %s:%s page=%lx\n",__FILE__,__func__, page);
++
++	if (!cleancache_cgops || !atleast_one) {
++		cleancache_failed_gets++;
++		goto out;
++	}
++
++        if(!page || !page->mapping){
++               printk(KERN_INFO "pagecheck %s:%s\n",__FILE__,__func__);
++               goto out;
++        }      
++	VM_BUG_ON_PAGE(!PageLocked(page), page);
++	if (pool_id < 0)
++		goto out;
++
++
++	if (cleancache_get_key(page->mapping->host, &key) < 0)
++		goto out;
++
++	ret = cleancache_cgops->get_page(pool_id, key, page->index, page);
++	if (ret == 0)
++		cleancache_succ_gets++;
++	else
++		cleancache_failed_gets++;
++out:
++	return ret;
++}
++EXPORT_SYMBOL(__cleancache_cg_get_page);
++
++void __cleancache_cg_put_page(struct page *page, int pool_id)
++{
++	struct cleancache_filekey key = { .u.key = { 0 } };
++//        printk(KERN_INFO "InitCG %s:%s page=%lx\n",__FILE__,__func__, page);
++        cleancache_puts++;
++
++	if (!cleancache_cgops || !atleast_one) {
++		return;
++	}
++        
++        if(!page || !page->mapping){
++               printk(KERN_INFO "pagecheck %s:%s\n",__FILE__,__func__);
++               return;
++        }      
++
++	VM_BUG_ON_PAGE(!PageLocked(page), page);
++	if (pool_id >= 0 &&
++		cleancache_get_key(page->mapping->host, &key) >= 0) {
++		cleancache_cgops->put_page(pool_id, key, page->index, page);
++	}
++}
++EXPORT_SYMBOL(__cleancache_cg_put_page);
++
++void __cleancache_cg_invalidate_page(struct address_space *mapping,
++					struct page *page, int pool_id)
++{
++	/* careful... page->mapping is NULL sometimes when this is called */
++	struct cleancache_filekey key = { .u.key = { 0 } };
++//        printk(KERN_INFO "InitCG %s:%s\n",__FILE__,__func__);
++
++	if (!cleancache_cgops || !atleast_one)
++		return;
++        if(!page || !page->mapping){
++               printk(KERN_INFO "pagecheck %s:%s\n",__FILE__,__func__);
++	       return;
++        }      
++
++	if (pool_id >= 0) {
++		VM_BUG_ON_PAGE(!PageLocked(page), page);
++		if (cleancache_get_key(mapping->host, &key) >= 0) {
++			cleancache_cgops->invalidate_page(pool_id,
++					key, page->index);
++			cleancache_invalidates++;
++		}
++	}
++}
++EXPORT_SYMBOL(__cleancache_cg_invalidate_page);
++
++void __cleancache_cg_weight_changed(struct cgroup *cg, u64 val)
++{
++        int pool_id = cg->cleancache_poolid;
++
++	if (cleancache_cgops && pool_id >= 0)
++                cleancache_cgops->cg_weight_set(cg, val);
++        cg->cc_weight = val;
++}
++
++void __cleancache_cg_pool_stats(struct cgroup *cg, struct page *page)
++{
++        int pool_id = cg->cleancache_poolid;
++
++	if (cleancache_cgops && pool_id >= 0)
++                cleancache_cgops->cg_pool_stats(cg, page);
++}
++EXPORT_SYMBOL(__cleancache_cg_pool_stats);
++
++void __cleancache_cg_invalidate_inode(struct address_space *mapping)
++{
++	struct cleancache_filekey key = { .u.key = { 0 } };
++//        printk(KERN_INFO "InitCG %s:%s\n",__FILE__,__func__);
++
++	if (!cleancache_cgops || !atleast_one)
++		return;
++
++	if (cleancache_get_key(mapping->host, &key) >= 0)
++		cleancache_cgops->invalidate_inode(key);
++}
++EXPORT_SYMBOL(__cleancache_cg_invalidate_inode);
++
++void __cleancache_invalidate_cg (struct cgroup *cg)
++{
++//        printk(KERN_INFO "InitCG %s:%s\n",__FILE__,__func__);
++	if (cleancache_cgops && atleast_one && cg->cleancache_poolid >= 0)
++		cleancache_cgops->invalidate_cg(cg);
++	cg->cleancache_poolid = CLEANCACHE_NO_POOL;
++}
++EXPORT_SYMBOL(__cleancache_invalidate_cg);
++
++
++
+ static int __init init_cleancache(void)
+ {
+ #ifdef CONFIG_DEBUG_FS
+ 	struct dentry *root = debugfs_create_dir("cleancache", NULL);
+ 	if (root == NULL)
+diff -u5 -rNX exclude-linux linux-4.1.3/mm/filemap.c linux-4.1.3.changed/mm/filemap.c
+--- linux-4.1.3/mm/filemap.c	2015-07-21 22:40:33.000000000 +0530
++++ linux-4.1.3.changed/mm/filemap.c	2016-08-26 23:45:21.835494000 +0530
+@@ -184,15 +184,17 @@
+ 	/*
+ 	 * if we're uptodate, flush out into the cleancache, otherwise
+ 	 * invalidate any existing cleancache entries.  We can't leave
+ 	 * stale data around in the cleancache once our page is gone
+ 	 */
+-	if (PageUptodate(page) && PageMappedToDisk(page))
++	if (PageUptodate(page) && PageMappedToDisk(page)){
+ 		cleancache_put_page(page);
+-	else
++                cleancache_cg_put_page(page);
++	}else{
+ 		cleancache_invalidate_page(mapping, page);
+-
++		cleancache_cg_invalidate_page(mapping, page);
++        }
+ 	page_cache_tree_delete(mapping, page, shadow);
+ 
+ 	page->mapping = NULL;
+ 	/* Leave page->index set: truncation lookup relies upon it */
+ 
+diff -u5 -rNX exclude-linux linux-4.1.3/mm/hwpoison-inject.mod.c linux-4.1.3.changed/mm/hwpoison-inject.mod.c
+--- linux-4.1.3/mm/hwpoison-inject.mod.c	1970-01-01 05:30:00.000000000 +0530
++++ linux-4.1.3.changed/mm/hwpoison-inject.mod.c	2016-09-09 00:16:12.700222000 +0530
+@@ -0,0 +1,60 @@
++#include <linux/module.h>
++#include <linux/vermagic.h>
++#include <linux/compiler.h>
++
++MODULE_INFO(vermagic, VERMAGIC_STRING);
++
++__visible struct module __this_module
++__attribute__((section(".gnu.linkonce.this_module"))) = {
++	.name = KBUILD_MODNAME,
++	.init = init_module,
++#ifdef CONFIG_MODULE_UNLOAD
++	.exit = cleanup_module,
++#endif
++	.arch = MODULE_ARCH_INIT,
++};
++
++MODULE_INFO(intree, "Y");
++
++static const struct modversion_info ____versions[]
++__used
++__attribute__((section("__versions"))) = {
++	{ 0xaf3631aa, __VMLINUX_SYMBOL_STR(module_layout) },
++	{ 0x23a8fa9b, __VMLINUX_SYMBOL_STR(simple_attr_release) },
++	{ 0xb8bb8201, __VMLINUX_SYMBOL_STR(simple_attr_write) },
++	{ 0x95ba30fe, __VMLINUX_SYMBOL_STR(simple_attr_read) },
++	{ 0x64ecc42e, __VMLINUX_SYMBOL_STR(generic_file_llseek) },
++	{ 0x1829b9ed, __VMLINUX_SYMBOL_STR(hwpoison_filter_memcg) },
++	{ 0x1f1988f7, __VMLINUX_SYMBOL_STR(hwpoison_filter_flags_value) },
++	{ 0xa6af9b3e, __VMLINUX_SYMBOL_STR(debugfs_create_u64) },
++	{ 0x1edc21cb, __VMLINUX_SYMBOL_STR(hwpoison_filter_flags_mask) },
++	{ 0xae6eaf93, __VMLINUX_SYMBOL_STR(hwpoison_filter_dev_minor) },
++	{ 0x117c7305, __VMLINUX_SYMBOL_STR(hwpoison_filter_dev_major) },
++	{ 0x8506a16f, __VMLINUX_SYMBOL_STR(debugfs_create_u32) },
++	{ 0x543cc647, __VMLINUX_SYMBOL_STR(debugfs_create_file) },
++	{ 0xd901dbf7, __VMLINUX_SYMBOL_STR(debugfs_create_dir) },
++	{ 0x4daacf2c, __VMLINUX_SYMBOL_STR(debugfs_remove_recursive) },
++	{ 0x3a38dc65, __VMLINUX_SYMBOL_STR(memory_failure) },
++	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
++	{ 0x668a0878, __VMLINUX_SYMBOL_STR(shake_page) },
++	{ 0x9b50ecd7, __VMLINUX_SYMBOL_STR(__lock_page) },
++	{ 0x5a7d5b58, __VMLINUX_SYMBOL_STR(put_page) },
++	{ 0x4b11feba, __VMLINUX_SYMBOL_STR(unlock_page) },
++	{ 0xb1dddd14, __VMLINUX_SYMBOL_STR(hwpoison_filter) },
++	{ 0xa1c76e0a, __VMLINUX_SYMBOL_STR(_cond_resched) },
++	{ 0xb1e48f91, __VMLINUX_SYMBOL_STR(PageHuge) },
++	{ 0x1e000879, __VMLINUX_SYMBOL_STR(hwpoison_filter_enable) },
++	{ 0x4604a43a, __VMLINUX_SYMBOL_STR(mem_section) },
++	{ 0xb907513f, __VMLINUX_SYMBOL_STR(unpoison_memory) },
++	{ 0xc6cbbc89, __VMLINUX_SYMBOL_STR(capable) },
++	{ 0xf2d55cb9, __VMLINUX_SYMBOL_STR(simple_attr_open) },
++	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
++};
++
++static const char __module_depends[]
++__used
++__attribute__((section(".modinfo"))) =
++"depends=";
++
++
++MODULE_INFO(srcversion, "31D95BA389BF8959F69934E");
+diff -u5 -rNX exclude-linux linux-4.1.3/mm/memcontrol.c linux-4.1.3.changed/mm/memcontrol.c
+--- linux-4.1.3/mm/memcontrol.c	2015-07-21 22:40:33.000000000 +0530
++++ linux-4.1.3.changed/mm/memcontrol.c	2016-08-26 21:38:53.827494000 +0530
+@@ -352,10 +352,18 @@
+ 
+ 	struct mem_cgroup_per_node *nodeinfo[0];
+ 	/* WARNING: nodeinfo must be the last member here */
+ };
+ 
++struct cgroup *memcg_to_cg(struct mem_cgroup *memcg)
++{
++  if(memcg && memcg->initialized)
++         return memcg->css.cgroup;
++  return NULL;
++}
++EXPORT_SYMBOL(memcg_to_cg);
++
+ #ifdef CONFIG_MEMCG_KMEM
+ bool memcg_kmem_is_active(struct mem_cgroup *memcg)
+ {
+ 	return memcg->kmem_acct_active;
+ }
+diff -u5 -rNX exclude-linux linux-4.1.3/mm/truncate.c linux-4.1.3.changed/mm/truncate.c
+--- linux-4.1.3/mm/truncate.c	2015-07-21 22:40:33.000000000 +0530
++++ linux-4.1.3.changed/mm/truncate.c	2016-08-30 10:45:09.965401000 +0530
+@@ -228,10 +228,12 @@
+ 	pgoff_t		indices[PAGEVEC_SIZE];
+ 	pgoff_t		index;
+ 	int		i;
+ 
+ 	cleancache_invalidate_inode(mapping);
++	cleancache_cg_invalidate_inode(mapping);
++
+ 	if (mapping->nrpages == 0 && mapping->nrshadows == 0)
+ 		return;
+ 
+ 	/* Offsets within partial pages */
+ 	partial_start = lstart & (PAGE_CACHE_SIZE - 1);
+@@ -298,10 +300,11 @@
+ 				partial_end = 0;
+ 			}
+ 			wait_on_page_writeback(page);
+ 			zero_user_segment(page, partial_start, top);
+ 			cleancache_invalidate_page(mapping, page);
++			cleancache_cg_invalidate_page(mapping, page);
+ 			if (page_has_private(page))
+ 				do_invalidatepage(page, partial_start,
+ 						  top - partial_start);
+ 			unlock_page(page);
+ 			page_cache_release(page);
+@@ -311,10 +314,11 @@
+ 		struct page *page = find_lock_page(mapping, end);
+ 		if (page) {
+ 			wait_on_page_writeback(page);
+ 			zero_user_segment(page, 0, partial_end);
+ 			cleancache_invalidate_page(mapping, page);
++			cleancache_cg_invalidate_page(mapping, page);
+ 			if (page_has_private(page))
+ 				do_invalidatepage(page, 0,
+ 						  partial_end);
+ 			unlock_page(page);
+ 			page_cache_release(page);
+@@ -370,10 +374,11 @@
+ 		pagevec_remove_exceptionals(&pvec);
+ 		pagevec_release(&pvec);
+ 		index++;
+ 	}
+ 	cleancache_invalidate_inode(mapping);
++	cleancache_cg_invalidate_inode(mapping);
+ }
+ EXPORT_SYMBOL(truncate_inode_pages_range);
+ 
+ /**
+  * truncate_inode_pages - truncate *all* the pages from an offset
+@@ -566,10 +571,12 @@
+ 	int ret = 0;
+ 	int ret2 = 0;
+ 	int did_range_unmap = 0;
+ 
+ 	cleancache_invalidate_inode(mapping);
++	cleancache_cg_invalidate_inode(mapping);
++
+ 	pagevec_init(&pvec, 0);
+ 	index = start;
+ 	while (index <= end && pagevec_lookup_entries(&pvec, mapping, index,
+ 			min(end - index, (pgoff_t)PAGEVEC_SIZE - 1) + 1,
+ 			indices)) {
+@@ -627,10 +634,11 @@
+ 		pagevec_release(&pvec);
+ 		cond_resched();
+ 		index++;
+ 	}
+ 	cleancache_invalidate_inode(mapping);
++	cleancache_cg_invalidate_inode(mapping);
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(invalidate_inode_pages2_range);
+ 
+ /**
+Binary files linux-4.1.3/signing_key.x509 and linux-4.1.3.changed/signing_key.x509 differ
