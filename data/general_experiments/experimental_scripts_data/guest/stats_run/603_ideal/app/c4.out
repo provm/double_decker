@@ -1,0 +1,20 @@
+00:15:15,450 (DBWorkload.java:259) INFO  - ======================================================================
+
+Benchmark:     YCSB {com.oltpbenchmark.benchmarks.ycsb.YCSBBenchmark}
+Configuration: /home/vm1/clients/oltp/config/sample_ycsb_config.xml
+Type:          MYSQL
+Driver:        com.mysql.jdbc.Driver
+URL:           jdbc:mysql://10.0.3.43:3306/ycsb
+Isolation:     TRANSACTION_SERIALIZABLE
+Scale Factor:  1400.0
+
+00:15:15,452 (DBWorkload.java:260) INFO  - ======================================================================
+00:15:15,469 (DBWorkload.java:790) INFO  - Creating 10 virtual terminals...
+00:15:17,149 (DBWorkload.java:795) INFO  - Launching the YCSB Benchmark with 1 Phase...
+00:15:17,260 (ThreadBench.java:325) INFO  - [0;1mPHASE START[0;0m :: [Workload=YCSB] [Serial=false] [Time=600] [Rate=20000] [Arrival=REGULAR] [Ratios=[50.0, 5.0, 15.0, 10.0, 10.0, 10.0]] [ActiveWorkers=10]
+00:15:17,261 (ThreadBench.java:472) INFO  - [0;1mMEASURE[0;0m :: Warmup complete, starting measurements.
+00:25:17,262 (ThreadBench.java:428) INFO  - [0;1mTERMINATE[0;0m :: Waiting for all terminals to finish ..
+00:25:17,676 (ThreadBench.java:233) INFO  - Starting WatchDogThread
+00:25:17,941 (DBWorkload.java:801) INFO  - ======================================================================
+00:25:17,941 (DBWorkload.java:802) INFO  - Rate limited reqs/s: Results(nanoSeconds=600000693751, measuredRequests=81110) = 135.1831770275596 requests/sec
+00:25:18,820 (DBWorkload.java:675) INFO  - Output Raw data into file: results/oltpbench.19.csv

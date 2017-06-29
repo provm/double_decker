@@ -1,0 +1,17 @@
+#set terminal postscript eps
+set terminal pngcairo dashed size 400, 300 font ", 7"
+#set term png size 600, 500
+set output "../mongo.png"
+set title ''
+set xtics font ", 6"
+set ytics font ", 6"
+set style line 1 lc rgb "#555555" lt 5
+set style line 2 lc rgb "black" lt 8
+
+set xrange [:280]
+
+set style function linespoints
+set xlabel 'Time (s)'
+set ylabel 'Throughput (op/s)'
+plot '../app_met.dat' using 1:2 ls 1 lw 1 with linespoints t 'Mongo-Low',\
+	 '../app_met.dat' using 1:3 ls 2  lw 2 with linespoints t 'Mongo-High'; 

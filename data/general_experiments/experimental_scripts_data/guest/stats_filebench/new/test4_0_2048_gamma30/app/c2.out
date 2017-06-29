@@ -1,0 +1,54 @@
+WARNING: Could not open /proc/sys/kernel/shmmax file!
+It means that you probably ran Filebench not as a root. Filebench will not increase shared
+region limits in this case, which can lead to the failures on certain workloads.
+Filebench Version 1.4.9.1
+ 1872: 0.000: Allocated 170MB of shared memory
+ 1872: 0.020: Web-server Version 3.0 personality successfully loaded
+ 1872: 0.020: Creating/pre-allocating files and filesets
+ 1872: 0.041: Fileset logfiles: 1 files, 0 leafdirs, avg dir width = 20, avg dir depth = 0.0, 0.016MB
+ 1872: 0.065: Removed any existing fileset logfiles in 1 seconds
+ 1872: 0.065: making tree for filset /home/ubuntu/logfiles
+ 1872: 0.065: Creating fileset logfiles...
+ 1872: 0.065: Preallocated 1 of 1 of fileset logfiles in 1 seconds
+ 1872: 0.100: Fileset bigfileset: 24000 files, 0 leafdirs, avg dir width = 20, avg dir depth = 3.4, 2993.551MB
+ 1872: 0.100: Re-using fileset bigfileset.
+ 1872: 0.100: Creating fileset bigfileset...
+ 1872: 4.823: Preallocated 24000 of 24000 of fileset bigfileset in 5 seconds
+ 1872: 4.823: waiting for fileset pre-allocation to finish
+25876: 4.823: Starting 1 filereader instances
+25877: 4.847: Starting 8 filereaderthread threads
+ 1872: 5.854: Running...
+ 1872: 906.135: Run took 900 seconds...
+ 1872: 906.178: Per-Operation Breakdown
+closefile10          87316ops       97ops/s   0.0mb/s      0.0ms/op     1054us/op-cpu [0ms - 7ms]
+readfile10           87317ops       97ops/s   6.7mb/s      1.1ms/op     2293us/op-cpu [0ms - 985ms]
+openfile10           87317ops       97ops/s   0.0mb/s      0.1ms/op     1192us/op-cpu [0ms - 32ms]
+closefile9           87318ops       97ops/s   0.0mb/s      0.0ms/op     1057us/op-cpu [0ms - 6ms]
+readfile9            87318ops       97ops/s   6.7mb/s      1.1ms/op     2287us/op-cpu [0ms - 1520ms]
+openfile9            87319ops       97ops/s   0.0mb/s      0.1ms/op     1193us/op-cpu [0ms - 32ms]
+closefile8           87319ops       97ops/s   0.0mb/s      0.0ms/op     1054us/op-cpu [0ms - 6ms]
+readfile8            87319ops       97ops/s   6.7mb/s      1.1ms/op     2317us/op-cpu [0ms - 971ms]
+openfile8            87319ops       97ops/s   0.0mb/s      0.1ms/op     1190us/op-cpu [0ms - 41ms]
+closefile7           87319ops       97ops/s   0.0mb/s      0.0ms/op     1042us/op-cpu [0ms - 5ms]
+readfile7            87319ops       97ops/s   6.7mb/s      1.1ms/op     2286us/op-cpu [0ms - 2038ms]
+openfile7            87319ops       97ops/s   0.0mb/s      0.1ms/op     1179us/op-cpu [0ms - 49ms]
+closefile6           87319ops       97ops/s   0.0mb/s      0.0ms/op     1075us/op-cpu [0ms - 8ms]
+readfile6            87320ops       97ops/s   6.7mb/s      1.1ms/op     2297us/op-cpu [0ms - 381ms]
+openfile6            87320ops       97ops/s   0.0mb/s      0.1ms/op     1190us/op-cpu [0ms - 51ms]
+closefile5           87320ops       97ops/s   0.0mb/s      0.0ms/op     1073us/op-cpu [0ms - 4ms]
+readfile5            87321ops       97ops/s   6.7mb/s      1.1ms/op     2254us/op-cpu [0ms - 711ms]
+openfile5            87322ops       97ops/s   0.0mb/s      0.1ms/op     1185us/op-cpu [0ms - 38ms]
+closefile4           87322ops       97ops/s   0.0mb/s      0.0ms/op     1059us/op-cpu [0ms - 2ms]
+readfile4            87322ops       97ops/s   6.7mb/s      1.1ms/op     2284us/op-cpu [0ms - 710ms]
+openfile4            87322ops       97ops/s   0.0mb/s      0.1ms/op     1169us/op-cpu [0ms - 51ms]
+closefile3           87322ops       97ops/s   0.0mb/s      0.0ms/op     1052us/op-cpu [0ms - 3ms]
+readfile3            87323ops       97ops/s   6.7mb/s      1.1ms/op     2272us/op-cpu [0ms - 411ms]
+openfile3            87323ops       97ops/s   0.0mb/s      0.1ms/op     1195us/op-cpu [0ms - 48ms]
+closefile2           87323ops       97ops/s   0.0mb/s      0.0ms/op     1056us/op-cpu [0ms - 3ms]
+readfile2            87323ops       97ops/s   6.7mb/s      1.1ms/op     2294us/op-cpu [0ms - 356ms]
+openfile2            87323ops       97ops/s   0.0mb/s      0.1ms/op     1186us/op-cpu [0ms - 35ms]
+closefile1           87323ops       97ops/s   0.0mb/s      0.0ms/op     1076us/op-cpu [0ms - 5ms]
+readfile1            87324ops       97ops/s   6.7mb/s      1.1ms/op     2254us/op-cpu [0ms - 788ms]
+openfile1            87324ops       97ops/s   0.0mb/s      0.1ms/op     1170us/op-cpu [0ms - 31ms]
+ 1872: 906.178: IO Summary: 2619615 ops, 2909.828 ops/s, (970/0 r/w),  67.0mb/s,   1118us cpu/op,   1.2ms latency
+ 1872: 906.178: Shutting down processes

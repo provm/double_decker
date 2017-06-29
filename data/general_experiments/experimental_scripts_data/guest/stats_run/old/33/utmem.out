@@ -1,0 +1,28 @@
+gets:7601555 sgets:7055454 puts:7564242 flushes:6 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+508782
+-------------------------------
+gets:7915 sgets:0 puts:0 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+0
+--------------------------------------
+508782
+786432
+
+
+
+t@deba-desktop:/sys/kernel/mm/utmem# cat 0/5/stats && cat 0/5/mem_used && echo "-------------------------------" && cat 0/6/stats && cat 0/6/mem_used && echo "--------------------------------------" && cat mem_used && cat global_limit 
+gets:26598795 sgets:26052639 puts:26561297 flushes:6 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+508652
+-------------------------------
+gets:7970 sgets:0 puts:0 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+0
+--------------------------------------
+508652
+786432
+
+
+
+

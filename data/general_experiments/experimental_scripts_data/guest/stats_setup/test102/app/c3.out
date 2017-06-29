@@ -1,0 +1,10 @@
+/usr/lib/jvm/java-7-openjdk-amd64/bin/java -cp /home/vm1/clients/ycsb_redis/redis-binding/conf:/home/vm1/clients/ycsb_redis/conf:/home/vm1/clients/ycsb_redis/lib/commons-pool-1.5.5.jar:/home/vm1/clients/ycsb_redis/lib/jackson-mapper-asl-1.9.4.jar:/home/vm1/clients/ycsb_redis/lib/redis-binding-0.13.0-SNAPSHOT.jar:/home/vm1/clients/ycsb_redis/lib/jackson-core-asl-1.9.4.jar:/home/vm1/clients/ycsb_redis/lib/htrace-core4-4.1.0-incubating.jar:/home/vm1/clients/ycsb_redis/lib/jedis-2.0.0.jar:/home/vm1/clients/ycsb_redis/lib/HdrHistogram-2.1.4.jar:/home/vm1/clients/ycsb_redis/lib/core-0.13.0-SNAPSHOT.jar com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.RedisClient -s -P /home/vm1/clients/ycsb_redis/workloads/workload1 -p redis.host=10.0.3.168 -p redis.port=6379 -load
+Command line: -db com.yahoo.ycsb.db.RedisClient -s -P /home/vm1/clients/ycsb_redis/workloads/workload1 -p redis.host=10.0.3.168 -p redis.port=6379 -loadYCSB Client 0.13.0-SNAPSHOT
+
+Loading workload...
+Starting test.
+DBWrapper: report latency for each error is false and specific error codes to track for latency are: []
+2017-05-18 19:33:44:126 0 sec: 6 operations; ∞ current ops/sec; est completion in 0 seconds [INSERT: Count=15, Max=61887, Min=1389, Avg=8750.13, 90=13487, 99=61887, 99.9=61887, 99.99=61887] 
+2017-05-18 19:33:53:745 10 sec: 4118 operations; 411.2 current ops/sec; est completion in 7 minutes [INSERT: Count=4103, Max=236287, Min=177, Avg=2289.82, 90=1191, 99=41663, 99.9=88959, 99.99=236287] 
+2017-05-18 19:34:03:745 20 sec: 4624 operations; 50.6 current ops/sec; est completion in 14 minutes [INSERT: Count=506, Max=273151, Min=184, Avg=19642.18, 90=66687, 99=141951, 99.9=232191, 99.99=273151] 
+2017-05-18 19:34:13:745 30 sec: 21075 operations; 1645.1 current ops/sec; est completion in 4 minutes [INSERT: Count=16454, Max=249727, Min=133, Avg=597.24, 90=211, 99=2079, 99.9=85823, 99.99=126335] 

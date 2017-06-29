@@ -1,0 +1,8 @@
+set term png size 600, 500
+set output "../gl_cum.png"
+set title 'Cumulative Plot between SMR-GLR Reclamation'
+set xlabel 'Time (s)'
+set ylabel 'Total Memory Reclaimed (MB)'
+plot '../plot.dat' using 1:2 with lines t 'Soft Memory Reclaimed', \
+	 '../plot.dat' using 1:3 with lines t 'Global LRU Reclaimed'
+

@@ -1,0 +1,9 @@
+set term png size 600, 500
+set output "../smr_cum.png"
+set title 'Cumulative Plot between Time - Soft Memory Reclaimed'
+set xlabel 'Time (s)'
+set ylabel 'Soft Memory Reclaimed (MB)'
+plot '../collected.dat' using 1:($4/1048576) with lines t 'Mongo-Low', \
+	 '../collected.dat' using 1:($7/1048576) with lines t 'Mongo-High', \
+	 '../collected.dat' using 1:($10/1048576) with lines t 'Redis-Low', \
+	 '../collected.dat' using 1:($13/1048576) with lines t 'Redis-High',

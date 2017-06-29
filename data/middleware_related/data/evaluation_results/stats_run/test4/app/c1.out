@@ -1,0 +1,13 @@
+java -cp /home/ubuntu/ycsb/mongodb-binding/conf:/home/ubuntu/ycsb/conf:/home/ubuntu/ycsb/lib/jackson-mapper-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/jackson-core-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/htrace-core4-4.1.0-incubating.jar:/home/ubuntu/ycsb/lib/core-0.12.0.jar:/home/ubuntu/ycsb/lib/HdrHistogram-2.1.4.jar:/home/ubuntu/ycsb/mongodb-binding/lib/mongo-java-driver-3.0.3.jar:/home/ubuntu/ycsb/mongodb-binding/lib/logback-core-1.1.2.jar:/home/ubuntu/ycsb/mongodb-binding/lib/mongodb-binding-0.12.0.jar:/home/ubuntu/ycsb/mongodb-binding/lib/logback-classic-1.1.2.jar:/home/ubuntu/ycsb/mongodb-binding/lib/mongodb-async-driver-2.0.1.jar:/home/ubuntu/ycsb/mongodb-binding/lib/slf4j-api-1.6.4.jar com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.MongoDbClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p mongodb.url=mongodb://10.0.3.220:27017/ycsb?w=0 -p maxexecutiontime=600 -t
+YCSB Client 0.12.0
+Command line: -db com.yahoo.ycsb.db.MongoDbClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p mongodb.url=mongodb://10.0.3.220:27017/ycsb?w=0 -p maxexecutiontime=600 -t
+Loading workload...
+Starting test.
+Maximum execution time specified as: 600 secs
+2017-05-15 00:58:47:268 0 sec: 0 operations; est completion in 0 seconds 
+mongo client connection created with mongodb://10.0.3.220:27017/ycsb?w=0
+DBWrapper: report latency for each error is false and specific error codes to track for latency are: []
+2017-05-15 00:58:57:229 10 sec: 29 operations; 2.9 current ops/sec; est completion in 39 days 21 hours [READ: Count=29, Max=1105919, Min=1067, Avg=302997.55, 90=867839, 99=1105919, 99.9=1105919, 99.99=1105919] 
+2017-05-15 00:59:07:229 20 sec: 96 operations; 6.7 current ops/sec; est completion in 24 days 2 hours [READ: Count=67, Max=1265663, Min=714, Avg=151476.48, 90=486143, 99=1044479, 99.9=1265663, 99.99=1265663] 
+2017-05-15 00:59:17:229 30 sec: 146 operations; 5 current ops/sec; est completion in 23 days 18 hours [READ: Count=50, Max=1692671, Min=1058, Avg=198550.4, 90=915455, 99=1692671, 99.9=1692671, 99.99=1692671] 
+2017-05-15 00:59:27:229 40 sec: 177 operations; 3.1 current ops/sec; est completion in 26 days 3 hours [READ: Count=31, Max=1780735, Min=576, Avg=322870.03, 90=1309695, 99=1780735, 99.9=1780735, 99.99=1780735] 

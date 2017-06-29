@@ -1,0 +1,30 @@
+gets:11740101 sgets:11193950 puts:11493378 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+299428
+-------------------------------
+gets:9386 sgets:1416 puts:5452 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+4036
+--------------------------------------
+303464
+786432
+cat: cat: No such file or directory
+gets:11740101 sgets:11193950 puts:11493378 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+
+
+root@deba-desktop:/sys/kernel/mm/utmem# cat 0/5/stats && cat 0/5/mem_used && echo "-------------------------------" && cat 0/6/stats && cat 0/6/mem_used && echo "--------------------------------------" && cat mem_used && cat global_limit cat 0/5/stats && cat 0/5/mem_used && echo "-------------------------------" && cat 0/6/stats && cat 0/6/mem_used && echo "--------------------------------------" && cat mem_used && cat global_limit 
+gets:27784884 sgets:27238731 puts:27538122 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+299391
+-------------------------------
+gets:10831 sgets:2861 puts:7582 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+4721
+--------------------------------------
+304112
+786432
+cat: cat: No such file or directory
+gets:27784884 sgets:27238731 puts:27538122 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+

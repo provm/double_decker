@@ -1,0 +1,22 @@
+/usr/lib/jvm/java-7-openjdk-amd64/bin/java -cp /home/vm1/clients/ycsb_mongo/mongodb-binding/conf:/home/vm1/clients/ycsb_mongo/conf:/home/vm1/clients/ycsb_mongo/lib/jackson-mapper-asl-1.9.4.jar:/home/vm1/clients/ycsb_mongo/lib/jackson-core-asl-1.9.4.jar:/home/vm1/clients/ycsb_mongo/lib/htrace-core4-4.1.0-incubating.jar:/home/vm1/clients/ycsb_mongo/lib/core-0.12.0.jar:/home/vm1/clients/ycsb_mongo/lib/HdrHistogram-2.1.4.jar:/home/vm1/clients/ycsb_mongo/mongodb-binding/lib/mongo-java-driver-3.0.3.jar:/home/vm1/clients/ycsb_mongo/mongodb-binding/lib/logback-core-1.1.2.jar:/home/vm1/clients/ycsb_mongo/mongodb-binding/lib/mongodb-binding-0.12.0.jar:/home/vm1/clients/ycsb_mongo/mongodb-binding/lib/logback-classic-1.1.2.jar:/home/vm1/clients/ycsb_mongo/mongodb-binding/lib/mongodb-async-driver-2.0.1.jar:/home/vm1/clients/ycsb_mongo/mongodb-binding/lib/slf4j-api-1.6.4.jar com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.MongoDbClient -s -P /home/vm1/clients/ycsb_mongo/workloads/workload1 -p mongodb.url=mongodb://10.0.3.220:27017/ycsb?w=0 -p maxexecutiontime=1000 -t
+YCSB Client 0.12.0
+Command line: -db com.yahoo.ycsb.db.MongoDbClient -s -P /home/vm1/clients/ycsb_mongo/workloads/workload1 -p mongodb.url=mongodb://10.0.3.220:27017/ycsb?w=0 -p maxexecutiontime=1000 -t
+Loading workload...
+Starting test.
+Maximum execution time specified as: 1000 secs
+2017-05-18 19:29:33:603 0 sec: 0 operations; est completion in 0 seconds 
+2017-05-18 19:29:43:240 10 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-18 19:29:53:240 20 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+mongo client connection created with mongodb://10.0.3.220:27017/ycsb?w=0
+DBWrapper: report latency for each error is false and specific error codes to track for latency are: []
+2017-05-18 19:30:03:240 30 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-18 19:30:13:240 40 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-18 19:30:23:240 50 sec: 11 operations; 1.1 current ops/sec; est completion in 526 days 2 hours [READ: Count=11, Max=19333119, Min=9248, Avg=2291202.55, 90=1517567, 99=19333119, 99.9=19333119, 99.99=19333119] 
+2017-05-18 19:30:33:240 60 sec: 32 operations; 2.1 current ops/sec; est completion in 217 days [READ: Count=21, Max=1523711, Min=1915, Avg=447398.24, 90=1274879, 99=1523711, 99.9=1523711, 99.99=1523711] 
+2017-05-18 19:30:43:240 70 sec: 53 operations; 2.1 current ops/sec; est completion in 152 days 20 hours [READ: Count=21, Max=1541119, Min=6660, Avg=476682.76, 90=1515519, 99=1541119, 99.9=1541119, 99.99=1541119] 
+2017-05-18 19:30:53:240 80 sec: 66 operations; 1.3 current ops/sec; est completion in 140 days 6 hours [READ: Count=13, Max=2494463, Min=96448, Avg=786395.08, 90=1543167, 99=2494463, 99.9=2494463, 99.99=2494463] 
+2017-05-18 19:31:03:240 90 sec: 86 operations; 2 current ops/sec; est completion in 121 days 2 hours [READ: Count=20, Max=1547263, Min=9320, Avg=519073, 90=1399807, 99=1547263, 99.9=1547263, 99.99=1547263] 
+2017-05-18 19:31:13:240 100 sec: 111 operations; 2.5 current ops/sec; est completion in 104 days 6 hours [READ: Count=25, Max=1522687, Min=1677, Avg=408823.48, 90=1517567, 99=1522687, 99.9=1522687, 99.99=1522687] 
+2017-05-18 19:31:23:240 110 sec: 132 operations; 2.1 current ops/sec; est completion in 96 days 10 hours [READ: Count=21, Max=1520639, Min=2160, Avg=462328.62, 90=1346559, 99=1520639, 99.9=1520639, 99.99=1520639] 
+2017-05-18 19:31:33:240 120 sec: 152 operations; 2 current ops/sec; est completion in 91 days 8 hours [READ: Count=20, Max=1713151, Min=1206, Avg=514018.15, 90=1524735, 99=1713151, 99.9=1713151, 99.99=1713151] 
+2017-05-18 19:31:43:240 130 sec: 166 operations; 1.4 current ops/sec; est completion in 90 days 15 hours [READ: Count=14, Max=1542143, Min=106432, Avg=666889.14, 90=1516543, 99=1542143, 99.9=1542143, 99.99=1542143] 

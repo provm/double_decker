@@ -1,0 +1,73 @@
+18:01:40,113 (DBWorkload.java:259) INFO  - ======================================================================
+
+Benchmark:     YCSB {com.oltpbenchmark.benchmarks.ycsb.YCSBBenchmark}
+Configuration: /home/ubuntu/oltp/config/sample_ycsb_config.xml
+Type:          MYSQL
+Driver:        com.mysql.jdbc.Driver
+URL:           jdbc:mysql://10.0.3.43:3306/ycsb
+Isolation:     TRANSACTION_SERIALIZABLE
+Scale Factor:  1400.0
+
+18:01:40,115 (DBWorkload.java:260) INFO  - ======================================================================
+18:01:40,174 (DBWorkload.java:512) INFO  - Creating new YCSB database...
+18:01:40,664 (DBWorkload.java:514) INFO  - Finished!
+18:01:40,664 (DBWorkload.java:515) INFO  - ======================================================================
+18:01:40,665 (DBWorkload.java:538) INFO  - Loading data into YCSB database...
+18:12:47,205 (DBWorkload.java:259) INFO  - ======================================================================
+
+Benchmark:     YCSB {com.oltpbenchmark.benchmarks.ycsb.YCSBBenchmark}
+Configuration: /home/ubuntu/oltp/config/sample_ycsb_config.xml
+Type:          MYSQL
+Driver:        com.mysql.jdbc.Driver
+URL:           jdbc:mysql://10.0.3.43:3306/ycsb
+Isolation:     TRANSACTION_SERIALIZABLE
+Scale Factor:  1400.0
+
+18:12:47,207 (DBWorkload.java:260) INFO  - ======================================================================
+18:12:47,220 (DBWorkload.java:790) INFO  - Creating 10 virtual terminals...
+com.mysql.jdbc.exceptions.jdbc4.CommunicationsException: Communications link failure
+
+The last packet sent successfully to the server was 0 milliseconds ago. The driver has not received any packets from the server.
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:57)
+	at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:526)
+	at com.mysql.jdbc.Util.handleNewInstance(Util.java:411)
+	at com.mysql.jdbc.SQLError.createCommunicationsException(SQLError.java:1117)
+	at com.mysql.jdbc.MysqlIO.<init>(MysqlIO.java:350)
+	at com.mysql.jdbc.ConnectionImpl.coreConnect(ConnectionImpl.java:2408)
+	at com.mysql.jdbc.ConnectionImpl.connectOneTryOnly(ConnectionImpl.java:2445)
+	at com.mysql.jdbc.ConnectionImpl.createNewIO(ConnectionImpl.java:2230)
+	at com.mysql.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:813)
+	at com.mysql.jdbc.JDBC4Connection.<init>(JDBC4Connection.java:47)
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:57)
+	at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:526)
+	at com.mysql.jdbc.Util.handleNewInstance(Util.java:411)
+	at com.mysql.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:399)
+	at com.mysql.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:334)
+	at java.sql.DriverManager.getConnection(DriverManager.java:571)
+	at java.sql.DriverManager.getConnection(DriverManager.java:215)
+	at com.oltpbenchmark.api.BenchmarkModule.makeConnection(BenchmarkModule.java:112)
+	at com.oltpbenchmark.benchmarks.ycsb.YCSBBenchmark.makeWorkersImpl(YCSBBenchmark.java:45)
+	at com.oltpbenchmark.api.BenchmarkModule.makeWorkers(BenchmarkModule.java:211)
+	at com.oltpbenchmark.DBWorkload.runWorkload(DBWorkload.java:791)
+	at com.oltpbenchmark.DBWorkload.main(DBWorkload.java:564)
+Caused by: java.net.ConnectException: Connection refused (Connection refused)
+	at java.net.PlainSocketImpl.socketConnect(Native Method)
+	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:339)
+	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:200)
+	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:182)
+	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:392)
+	at java.net.Socket.connect(Socket.java:576)
+	at java.net.Socket.connect(Socket.java:525)
+	at java.net.Socket.<init>(Socket.java:425)
+	at java.net.Socket.<init>(Socket.java:241)
+	at com.mysql.jdbc.StandardSocketFactory.connect(StandardSocketFactory.java:259)
+	at com.mysql.jdbc.MysqlIO.<init>(MysqlIO.java:300)
+	... 19 more
+18:12:47,319 (DBWorkload.java:795) INFO  - Launching the YCSB Benchmark with 1 Phase...
+18:12:47,357 (ThreadBench.java:325) INFO  - [0;1mPHASE START[0;0m :: [Workload=YCSB] [Serial=false] [Time=600] [Rate=20000] [Arrival=REGULAR] [Ratios=[50.0, 5.0, 15.0, 10.0, 10.0, 10.0]] [ActiveWorkers=10]
+18:12:47,359 (ThreadBench.java:472) INFO  - [0;1mMEASURE[0;0m :: Warmup complete, starting measurements.
+Write failed: Broken pipe

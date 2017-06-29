@@ -1,0 +1,33 @@
+set terminal pngcairo dashed size 400, 300 font ", 8"
+#set term png size 600, 500
+set output "../memory_ratio.png"
+set title ''
+set xtics font ", 8"
+set ytics font ", 8"
+
+set style line 1 lc rgb "#222222" lt 1
+set style line 2 lc rgb "#666666" lt 8
+set style line 3 lc rgb "#AAAAAA" lt 19
+set style line 4 lc rgb "#CCCCCC" lt 12
+
+set xlabel 'Time (s)'
+set ylabel 'Ratio'
+
+set xrange [:280]
+set yrange [0:3]
+set xzeroaxis
+plot '../collected.dat' using 1:((($2)/1048576)/(($2)/1048576)) ls 3 lw 0.75 with linespoints t'Mongo-Low', \
+	 '../collected.dat' using 1:((($5)/1048576)/(($2)/1048576)) ls 2 lw 0.75 with linespoints t 'Mongo-High', \
+	2 linetype 1 lc rgb "#black"
+	 #'../collected.dat' using 1:((($8)/1048576)/(($2)/1048576)) ls 1 lw 0.75 with linespoints t 'Redis-Low', \
+	 #'../collected.dat' using 1:((($11)/1048576)/(($2)/1048576)) ls 4 lw 0.75 with linespoints t 'Redis-High', \
+	 #'../collected.dat' using 1:(($8)/1048576) with lines t 'Redis-Low', \
+	 #'../collected.dat' using 1:(($11)/1048576) with lines t 'Redis-High', \
+	
+
+#plot '../collected.dat' using 1:(($2)/1048576) with lines t 'Mongo-Low', \
+#	 '../collected.dat' using 1:(($5)/1048576) with lines t 'Mongo-High', \
+#	 '../collected.dat' using 1:(($8)/1048576) with lines t 'Redis-Low', \
+#	 '../collected.dat' using 1:(($11)/1048576) with lines t 'Redis-High', \
+#	 '../collected.dat' every ::::430 using 1:(($14)/1048576) with lines t 'Free Memory in System
+

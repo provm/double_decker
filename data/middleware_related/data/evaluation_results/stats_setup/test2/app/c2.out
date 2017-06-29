@@ -1,0 +1,20 @@
+WARNING: Could not open /proc/sys/kernel/shmmax file!
+It means that you probably ran Filebench not as a root. Filebench will not increase shared
+region limits in this case, which can lead to the failures on certain workloads.
+Filebench Version 1.4.9.1
+18400: 0.000: Allocated 170MB of shared memory
+18400: 0.011: Web-server Version 3.0 personality successfully loaded
+18400: 0.011: Creating/pre-allocating files and filesets
+18400: 0.017: Fileset logfiles: 1 files, 0 leafdirs, avg dir width = 20, avg dir depth = 0.0, 0.016MB
+18400: 0.353: Removed any existing fileset logfiles in 1 seconds
+18400: 0.353: making tree for filset /home/ubuntu/logfiles
+18400: 0.353: Creating fileset logfiles...
+18400: 0.353: Preallocated 1 of 1 of fileset logfiles in 1 seconds
+18400: 0.366: Fileset bigfileset: 16500 files, 0 leafdirs, avg dir width = 20, avg dir depth = 3.2, 2050.590MB
+18400: 0.366: Re-using fileset bigfileset.
+18400: 0.366: Creating fileset bigfileset...
+18400: 1.301: Preallocated 16500 of 16500 of fileset bigfileset in 1 seconds
+18400: 1.301: waiting for fileset pre-allocation to finish
+ 2456: 1.301: Starting 1 filereader instances
+ 2457: 1.303: Starting 8 filereaderthread threads
+18400: 2.303: Running...

@@ -1,0 +1,126 @@
+java -cp /home/ubuntu/ycsb/mongodb-binding/conf:/home/ubuntu/ycsb/conf:/home/ubuntu/ycsb/lib/jackson-mapper-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/jackson-core-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/htrace-core4-4.1.0-incubating.jar:/home/ubuntu/ycsb/lib/core-0.12.0.jar:/home/ubuntu/ycsb/lib/HdrHistogram-2.1.4.jar:/home/ubuntu/ycsb/mongodb-binding/lib/mongo-java-driver-3.0.3.jar:/home/ubuntu/ycsb/mongodb-binding/lib/logback-core-1.1.2.jar:/home/ubuntu/ycsb/mongodb-binding/lib/mongodb-binding-0.12.0.jar:/home/ubuntu/ycsb/mongodb-binding/lib/logback-classic-1.1.2.jar:/home/ubuntu/ycsb/mongodb-binding/lib/mongodb-async-driver-2.0.1.jar:/home/ubuntu/ycsb/mongodb-binding/lib/slf4j-api-1.6.4.jar com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.MongoDbClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p mongodb.url=mongodb://10.0.3.220:27017/ycsb?w=0 -p maxexecutiontime=600 -t
+YCSB Client 0.12.0
+Command line: -db com.yahoo.ycsb.db.MongoDbClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p mongodb.url=mongodb://10.0.3.220:27017/ycsb?w=0 -p maxexecutiontime=600 -t
+Loading workload...
+Starting test.
+Maximum execution time specified as: 600 secs
+2017-05-09 15:09:24:282 0 sec: 0 operations; est completion in 0 seconds 
+2017-05-09 15:09:33:995 10 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:09:43:995 20 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:20:808 46 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:015 599 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:015 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:016 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:108 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:108 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:108 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:117 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:117 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:145 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+Maximum time elapsed. Requesting stop for the workload.
+2017-05-09 15:19:24:311 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:311 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:312 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:312 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:312 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:313 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:314 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:330 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:330 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:330 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:331 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:331 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:331 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:331 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:332 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:332 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:332 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:332 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:333 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:333 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:341 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:342 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:342 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:342 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:343 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:343 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:343 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:344 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:344 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:344 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:345 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:345 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:345 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:345 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:346 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:346 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:346 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:346 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:346 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:347 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:348 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:348 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:348 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:348 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:452 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:452 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:453 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+2017-05-09 15:19:24:453 600 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+Stop requested for workload. Now Joining!
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-05-09 15:19:34:280 610 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-05-09 15:19:43:995 620 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-05-09 15:19:53:995 630 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-05-09 15:20:04:017 640 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-05-09 15:20:13:995 650 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-05-09 15:20:24:033 660 sec: 0 operations; est completion in 106751991167300 days 15 hours 
+Still waiting for thread Thread-3 to complete. Workload status: true
+mongo client connection created with mongodb://10.0.3.220:27017/ycsb?w=0
+DBWrapper: report latency for each error is false and specific error codes to track for latency are: []
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-05-09 15:20:30:872 666 sec: 0 operations; est completion in 106751991167300 days 15 hours [CLEANUP: Count=1, Max=151423, Min=151296, Avg=151360, 90=151423, 99=151423, 99.9=151423, 99.99=151423] 
+[OVERALL], RunTime(ms), 667720.0
+[OVERALL], Throughput(ops/sec), 0.0
+[TOTAL_GCS_PS_Scavenge], Count, 0.0
+[TOTAL_GC_TIME_PS_Scavenge], Time(ms), 0.0
+[TOTAL_GC_TIME_%_PS_Scavenge], Time(%), 0.0
+[TOTAL_GCS_PS_MarkSweep], Count, 0.0
+[TOTAL_GC_TIME_PS_MarkSweep], Time(ms), 0.0
+[TOTAL_GC_TIME_%_PS_MarkSweep], Time(%), 0.0
+[TOTAL_GCs], Count, 0.0
+[TOTAL_GC_TIME], Time(ms), 0.0
+[TOTAL_GC_TIME_%], Time(%), 0.0
+[CLEANUP], Operations, 1.0
+[CLEANUP], AverageLatency(us), 151360.0
+[CLEANUP], MinLatency(us), 151296.0
+[CLEANUP], MaxLatency(us), 151423.0
+[CLEANUP], 95thPercentileLatency(us), 151423.0
+[CLEANUP], 99thPercentileLatency(us), 151423.0

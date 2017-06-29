@@ -1,0 +1,349 @@
+java -cp /home/ubuntu/ycsb/mongodb-binding/conf:/home/ubuntu/ycsb/conf:/home/ubuntu/ycsb/lib/jackson-mapper-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/jackson-core-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/htrace-core4-4.1.0-incubating.jar:/home/ubuntu/ycsb/lib/core-0.12.0.jar:/home/ubuntu/ycsb/lib/HdrHistogram-2.1.4.jar:/home/ubuntu/ycsb/mongodb-binding/lib/mongo-java-driver-3.0.3.jar:/home/ubuntu/ycsb/mongodb-binding/lib/logback-core-1.1.2.jar:/home/ubuntu/ycsb/mongodb-binding/lib/mongodb-binding-0.12.0.jar:/home/ubuntu/ycsb/mongodb-binding/lib/logback-classic-1.1.2.jar:/home/ubuntu/ycsb/mongodb-binding/lib/mongodb-async-driver-2.0.1.jar:/home/ubuntu/ycsb/mongodb-binding/lib/slf4j-api-1.6.4.jar com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.MongoDbClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p mongodb.url=mongodb://10.0.3.220:27017/ycsb?w=0 -p maxexecutiontime=600 -t
+YCSB Client 0.12.0
+Command line: -db com.yahoo.ycsb.db.MongoDbClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p mongodb.url=mongodb://10.0.3.220:27017/ycsb?w=0 -p maxexecutiontime=600 -t
+Loading workload...
+Starting test.
+Maximum execution time specified as: 600 secs
+2017-06-24 23:38:27:839 0 sec: 0 operations; est completion in 0 seconds 
+mongo client connection created with mongodb://10.0.3.220:27017/ycsb?w=0
+DBWrapper: report latency for each error is false and specific error codes to track for latency are: []
+2017-06-24 23:38:37:815 10 sec: 2570 operations; 257 current ops/sec; est completion in 10 hours 48 minutes [READ: Count=2570, Max=163583, Min=167, Avg=3756.87, 90=13063, 99=21423, 99.9=45503, 99.99=163583] 
+2017-06-24 23:38:47:815 20 sec: 5552 operations; 298.2 current ops/sec; est completion in 10 hours [READ: Count=2982, Max=46175, Min=130, Avg=3346.51, 90=12719, 99=21311, 99.9=39327, 99.99=46175] 
+2017-06-24 23:38:57:815 30 sec: 8580 operations; 302.8 current ops/sec; est completion in 9 hours 42 minutes [READ: Count=3028, Max=46335, Min=117, Avg=3294.97, 90=12223, 99=20175, 99.9=37631, 99.99=46335] 
+2017-06-24 23:39:07:815 40 sec: 11551 operations; 297.1 current ops/sec; est completion in 9 hours 36 minutes [READ: Count=2971, Max=48607, Min=106, Avg=3366.01, 90=12623, 99=20911, 99.9=36511, 99.99=48607] 
+2017-06-24 23:39:17:815 50 sec: 14444 operations; 289.3 current ops/sec; est completion in 9 hours 36 minutes [READ: Count=2893, Max=58463, Min=105, Avg=3451.95, 90=13159, 99=22287, 99.9=45215, 99.99=58463] 
+2017-06-24 23:39:27:815 60 sec: 17494 operations; 305 current ops/sec; est completion in 9 hours 30 minutes [READ: Count=3050, Max=62591, Min=106, Avg=3271.06, 90=12103, 99=20959, 99.9=38271, 99.99=62591] 
+2017-06-24 23:39:37:815 70 sec: 20554 operations; 306 current ops/sec; est completion in 9 hours 26 minutes [READ: Count=3060, Max=49183, Min=107, Avg=3267.09, 90=12271, 99=21487, 99.9=41023, 99.99=49183] 
+2017-06-24 23:39:47:815 80 sec: 23681 operations; 312.7 current ops/sec; est completion in 9 hours 21 minutes [READ: Count=3127, Max=60063, Min=103, Avg=3194.33, 90=11879, 99=21519, 99.9=46783, 99.99=60063] 
+2017-06-24 23:39:57:815 90 sec: 26703 operations; 302.2 current ops/sec; est completion in 9 hours 20 minutes [READ: Count=3022, Max=56671, Min=105, Avg=3305.2, 90=12175, 99=22095, 99.9=46047, 99.99=56671] 
+2017-06-24 23:40:07:815 100 sec: 29552 operations; 284.9 current ops/sec; est completion in 9 hours 22 minutes [READ: Count=2849, Max=55007, Min=107, Avg=3505.92, 90=13111, 99=23599, 99.9=44991, 99.99=55007] 
+2017-06-24 23:40:17:815 110 sec: 32602 operations; 305 current ops/sec; est completion in 9 hours 20 minutes [READ: Count=3050, Max=53503, Min=106, Avg=3275.13, 90=11839, 99=21439, 99.9=35679, 99.99=53503] 
+2017-06-24 23:40:27:815 120 sec: 35547 operations; 294.5 current ops/sec; est completion in 9 hours 20 minutes [READ: Count=2945, Max=53215, Min=106, Avg=3391.44, 90=12495, 99=22623, 99.9=43039, 99.99=53215] 
+2017-06-24 23:40:37:815 130 sec: 38557 operations; 301 current ops/sec; est completion in 9 hours 19 minutes [READ: Count=3010, Max=49695, Min=111, Avg=3317.98, 90=11943, 99=22991, 99.9=41599, 99.99=49695] 
+2017-06-24 23:40:47:815 140 sec: 41669 operations; 311.2 current ops/sec; est completion in 9 hours 17 minutes [READ: Count=3112, Max=55903, Min=103, Avg=3210.64, 90=11967, 99=20303, 99.9=40639, 99.99=55903] 
+2017-06-24 23:40:57:815 150 sec: 42453 operations; 78.4 current ops/sec; est completion in 9 hours 46 minutes [READ: Count=784, Max=48735, Min=120, Avg=3493.44, 90=12599, 99=22367, 99.9=45823, 99.99=48735] 
+2017-06-24 23:41:07:815 160 sec: 42453 operations; 0 current ops/sec; est completion in 10 hours 25 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:41:17:815 170 sec: 42453 operations; 0 current ops/sec; est completion in 11 hours 4 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:41:27:815 180 sec: 42453 operations; 0 current ops/sec; est completion in 11 hours 43 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:41:37:815 190 sec: 42453 operations; 0 current ops/sec; est completion in 12 hours 22 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:41:47:815 200 sec: 42453 operations; 0 current ops/sec; est completion in 13 hours 1 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:41:57:815 210 sec: 42453 operations; 0 current ops/sec; est completion in 13 hours 40 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:42:07:815 220 sec: 42453 operations; 0 current ops/sec; est completion in 14 hours 20 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:42:17:815 230 sec: 42453 operations; 0 current ops/sec; est completion in 14 hours 59 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:42:27:815 240 sec: 42453 operations; 0 current ops/sec; est completion in 15 hours 38 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:42:37:815 250 sec: 42453 operations; 0 current ops/sec; est completion in 16 hours 17 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:42:47:815 260 sec: 42453 operations; 0 current ops/sec; est completion in 16 hours 56 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:42:57:815 270 sec: 42453 operations; 0 current ops/sec; est completion in 17 hours 35 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:43:07:815 280 sec: 42453 operations; 0 current ops/sec; est completion in 18 hours 14 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:43:17:815 290 sec: 42453 operations; 0 current ops/sec; est completion in 18 hours 53 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:43:27:815 300 sec: 42453 operations; 0 current ops/sec; est completion in 19 hours 32 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:43:37:815 310 sec: 42453 operations; 0 current ops/sec; est completion in 20 hours 11 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:43:47:815 320 sec: 42453 operations; 0 current ops/sec; est completion in 20 hours 50 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:43:57:815 330 sec: 42453 operations; 0 current ops/sec; est completion in 21 hours 30 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:44:07:815 340 sec: 42453 operations; 0 current ops/sec; est completion in 22 hours 9 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:44:17:815 350 sec: 42453 operations; 0 current ops/sec; est completion in 22 hours 48 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:44:27:815 360 sec: 42453 operations; 0 current ops/sec; est completion in 23 hours 27 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:44:37:815 370 sec: 42453 operations; 0 current ops/sec; est completion in 1 days [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:44:47:815 380 sec: 42453 operations; 0 current ops/sec; est completion in 1 days [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:44:57:815 390 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 1 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:45:07:815 400 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 2 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:45:17:815 410 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 2 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:45:27:815 420 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 3 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:45:37:815 430 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 4 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:45:47:815 440 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 4 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:45:57:815 450 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 5 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:46:07:815 460 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 5 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:46:17:815 470 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 6 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:46:27:815 480 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 7 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:46:37:815 490 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 7 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:46:47:815 500 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 8 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:46:57:815 510 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 9 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:47:07:815 520 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 9 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:47:17:815 530 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 10 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:47:27:815 540 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 11 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:47:37:815 550 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 11 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:47:47:815 560 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 12 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:47:57:815 570 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 13 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:48:07:815 580 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 13 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:48:17:815 590 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 14 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+2017-06-24 23:48:27:815 600 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 15 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Maximum time elapsed. Requesting stop for the workload.
+Stop requested for workload. Now Joining!
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:48:37:815 610 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 15 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:48:47:815 620 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 16 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:48:57:817 630 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 17 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:49:07:815 640 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 17 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:49:17:815 650 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 18 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:49:27:815 660 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 19 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:49:37:815 670 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 19 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:49:47:815 680 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 20 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:49:57:815 690 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 20 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:50:07:815 700 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 21 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:50:17:815 710 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 22 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:50:27:815 720 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 22 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:50:37:815 730 sec: 42453 operations; 0 current ops/sec; est completion in 1 days 23 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:50:47:815 740 sec: 42453 operations; 0 current ops/sec; est completion in 2 days [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:50:57:815 750 sec: 42453 operations; 0 current ops/sec; est completion in 2 days [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:51:07:815 760 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 1 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:51:17:815 770 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 2 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:51:27:815 780 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 2 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:51:37:815 790 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 3 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:51:47:815 800 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 4 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:51:57:815 810 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 4 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:52:07:815 820 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 5 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:52:17:815 830 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 6 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:52:27:815 840 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 6 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:52:37:815 850 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 7 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:52:47:815 860 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 8 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:52:57:815 870 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 8 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:53:07:815 880 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 9 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:53:17:815 890 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 9 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:53:27:815 900 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 10 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:53:37:815 910 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 11 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:53:47:815 920 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 11 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:53:57:815 930 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 12 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:54:07:815 940 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 13 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:54:17:815 950 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 13 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:54:27:815 960 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 14 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:54:37:815 970 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 15 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:54:47:815 980 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 15 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:54:57:815 990 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 16 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:55:07:815 1000 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 17 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:55:17:815 1010 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 17 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:55:27:815 1020 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 18 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:55:37:815 1030 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 19 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:55:47:815 1040 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 19 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:55:57:815 1050 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 20 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+2017-06-24 23:56:07:815 1060 sec: 42453 operations; 0 current ops/sec; est completion in 2 days 21 hours [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] 
+Still waiting for thread Thread-3 to complete. Workload status: true
+Still waiting for thread Thread-3 to complete. Workload status: true
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       

@@ -1,0 +1,31 @@
+/usr/lib/jvm/java-7-openjdk-amd64/bin/java -cp /home/vm1/clients/ycsb_redis/redis-binding/conf:/home/vm1/clients/ycsb_redis/conf:/home/vm1/clients/ycsb_redis/lib/commons-pool-1.5.5.jar:/home/vm1/clients/ycsb_redis/lib/jackson-mapper-asl-1.9.4.jar:/home/vm1/clients/ycsb_redis/lib/redis-binding-0.13.0-SNAPSHOT.jar:/home/vm1/clients/ycsb_redis/lib/jackson-core-asl-1.9.4.jar:/home/vm1/clients/ycsb_redis/lib/htrace-core4-4.1.0-incubating.jar:/home/vm1/clients/ycsb_redis/lib/jedis-2.0.0.jar:/home/vm1/clients/ycsb_redis/lib/HdrHistogram-2.1.4.jar:/home/vm1/clients/ycsb_redis/lib/core-0.13.0-SNAPSHOT.jar com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.RedisClient -s -P /home/vm1/clients/ycsb_redis/workloads/workload1 -p redis.host=10.0.3.168 -p redis.port=6379 -load
+Command line: -db com.yahoo.ycsb.db.RedisClient -s -P /home/vm1/clients/ycsb_redis/workloads/workload1 -p redis.host=10.0.3.168 -p redis.port=6379 -loadYCSB Client 0.13.0-SNAPSHOT
+
+Loading workload...
+Starting test.
+DBWrapper: report latency for each error is false and specific error codes to track for latency are: []
+2017-05-18 19:53:46:158 0 sec: 0 operations; est completion in 0 seconds 
+redis.clients.jedis.exceptions.JedisConnectionException: It seems like server has closed the connection.
+	at redis.clients.util.RedisInputStream.readLine(RedisInputStream.java:91)
+	at redis.clients.jedis.Protocol.processInteger(Protocol.java:105)
+	at redis.clients.jedis.Protocol.process(Protocol.java:65)
+	at redis.clients.jedis.Protocol.read(Protocol.java:122)
+	at redis.clients.jedis.Connection.getStatusCodeReply(Connection.java:152)
+	at redis.clients.jedis.Jedis.hmset(Jedis.java:726)
+	at com.yahoo.ycsb.db.RedisClient.insert(RedisClient.java:120)
+	at com.yahoo.ycsb.DBWrapper.insert(DBWrapper.java:220)
+	at com.yahoo.ycsb.workloads.CoreWorkload.doInsert(CoreWorkload.java:562)
+	at com.yahoo.ycsb.ClientThread.run(Client.java:459)
+	at java.lang.Thread.run(Thread.java:745)
+redis.clients.jedis.exceptions.JedisConnectionException: It seems like server has closed the connection.
+	at redis.clients.util.RedisInputStream.readLine(RedisInputStream.java:91)
+	at redis.clients.jedis.Protocol.processInteger(Protocol.java:105)
+	at redis.clients.jedis.Protocol.process(Protocol.java:65)
+	at redis.clients.jedis.Protocol.read(Protocol.java:122)
+	at redis.clients.jedis.Connection.getStatusCodeReply(Connection.java:152)
+	at redis.clients.jedis.Jedis.hmset(Jedis.java:726)
+	at com.yahoo.ycsb.db.RedisClient.insert(RedisClient.java:120)
+	at com.yahoo.ycsb.DBWrapper.insert(DBWrapper.java:220)
+	at com.yahoo.ycsb.workloads.CoreWorkload.doInsert(CoreWorkload.java:562)
+	at com.yahoo.ycsb.ClientThread.run(Client.java:459)
+	at java.lang.Thread.run(Thread.java:745)

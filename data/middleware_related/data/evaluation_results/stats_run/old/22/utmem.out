@@ -1,0 +1,24 @@
+root@deba-desktop:/sys/kernel/mm/utmem# cat 0/5/stats && cat 0/5/mem_used && echo "-------------------------------" && cat 0/6/stats && cat 0/6/mem_used && echo "--------------------------------------" && cat mem_used && cat global_limit 
+gets:10906646 sgets:10381496 puts:10659075 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+277579
+-------------------------------
+gets:11383 sgets:3414 puts:6961 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+3547
+--------------------------------------
+281126
+786432
+
+
+gets:23216536 sgets:22691367 puts:22969109 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+277742
+-------------------------------
+gets:11383 sgets:3414 puts:6961 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+3547
+--------------------------------------
+281289
+786432
+

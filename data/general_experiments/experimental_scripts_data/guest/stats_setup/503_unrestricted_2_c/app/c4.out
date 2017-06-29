@@ -1,0 +1,18 @@
+17:21:06,932 (DBWorkload.java:259) INFO  - ======================================================================
+
+Benchmark:     YCSB {com.oltpbenchmark.benchmarks.ycsb.YCSBBenchmark}
+Configuration: /home/ubuntu/oltp/config/sample_ycsb_config.xml
+Type:          MYSQL
+Driver:        com.mysql.jdbc.Driver
+URL:           jdbc:mysql://10.0.3.43:3306/ycsb
+Isolation:     TRANSACTION_SERIALIZABLE
+Scale Factor:  1400.0
+
+17:21:06,933 (DBWorkload.java:260) INFO  - ======================================================================
+17:21:06,988 (DBWorkload.java:512) INFO  - Creating new YCSB database...
+17:21:07,763 (DBWorkload.java:514) INFO  - Finished!
+17:21:07,764 (DBWorkload.java:515) INFO  - ======================================================================
+17:21:07,764 (DBWorkload.java:538) INFO  - Loading data into YCSB database...
+17:30:22,506 (DBWorkload.java:540) INFO  - Finished!
+17:30:22,700 (DBWorkload.java:541) INFO  - ======================================================================
+17:30:22,707 (DBWorkload.java:581) INFO  - Skipping benchmark workload execution

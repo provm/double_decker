@@ -1,0 +1,20 @@
+WARNING: Could not open /proc/sys/kernel/shmmax file!
+It means that you probably ran Filebench not as a root. Filebench will not increase shared
+region limits in this case, which can lead to the failures on certain workloads.
+Filebench Version 1.4.9.1
+26057: 0.000: Allocated 170MB of shared memory
+26057: 0.001: Web-server Version 3.0 personality successfully loaded
+26057: 0.001: Creating/pre-allocating files and filesets
+26057: 0.003: Fileset logfiles: 1 files, 0 leafdirs, avg dir width = 20, avg dir depth = 0.0, 0.016MB
+26057: 0.048: Removed any existing fileset logfiles in 1 seconds
+26057: 0.048: making tree for filset /home/ubuntu/logfiles
+26057: 0.048: Creating fileset logfiles...
+26057: 0.048: Preallocated 1 of 1 of fileset logfiles in 1 seconds
+26057: 0.053: Fileset bigfileset: 8192 files, 0 leafdirs, avg dir width = 20, avg dir depth = 3.0, 1009.361MB
+26057: 0.054: Re-using fileset bigfileset.
+26057: 0.054: Creating fileset bigfileset...
+26061: 0.068: Failed to pre-allocate file /home/ubuntu/bigfileset/00000002/00000003/00000014/00000003/00000001/00000026: No such file or directory on line 67
+26057: 0.068: Failed to create filesets on line 67
+26069: 0.068: Failed to pre-allocate file /home/ubuntu/bigfileset/00000002/00000003/00000014/00000003/00000001/00000013: No such file or directory on line 67
+26067: 0.068: Failed to pre-allocate file /home/ubuntu/bigfileset/00000002/00000003/00000001/00000061/00000005/00000021: No such file or directory on line 67
+26074: 0.068: Failed to pre-allocate file /home/ubuntu/bigfileset/00000002/00000003/00000001/00000061/00000014/00000016/00000001: No such file or directory on line 67

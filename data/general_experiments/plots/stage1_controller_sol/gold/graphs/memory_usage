@@ -1,0 +1,21 @@
+set terminal pngcairo dashed size 400, 300 font "helvetica, 10"
+#set term png size 600, 500
+set output "../memory_usage.png"
+set title ''
+set xtics font "helvetica, 10"
+set ytics font "helvetica, 10"
+
+set style line 1 lc rgb "#000000" lt 4
+set style line 2 lc rgb "#000000" lt -1
+set style line 3 lc rgb "#555555" lt -1 
+
+set xlabel 'Time (s)'
+set ylabel 'Memory Usage (MB)'
+
+set xrange [:280]
+set yrange [:5000]
+set xzeroaxis
+plot '../collected.dat' using 1:(($5)/1048576) ls 3 lw 1 with lines t'Silver', \
+	 '../collected.dat' using 1:(($11)/1048576) ls 2 lw 2 with lines t 'Gold', \
+	 '../collected.dat' every ::::430 using 1:(($14)/1048576) ls 1 lw 1 with lines t 'Free Memory
+

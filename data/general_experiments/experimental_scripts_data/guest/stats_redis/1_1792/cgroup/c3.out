@@ -1,0 +1,104 @@
+Tue May 16 10:44:54 IST 2017
+--------------------MEMCG-----------------------
+MEM ONLY  : 1791 MB
+MEM+SWAP  : 2020 MB
+cache 3198976
+rss 1875619840
+rss_huge 0
+mapped_file 1527808
+writeback 0
+swap 239775744
+pgpgin 598347
+pgpgout 139651
+pgfault 702656
+pgmajfault 4501
+inactive_anon 531689472
+active_anon 1343930368
+inactive_file 217088
+active_file 2981888
+unevictable 0
+hierarchical_memory_limit 1879048192
+hierarchical_memsw_limit 5368709120
+total_cache 3198976
+total_rss 1875619840
+total_rss_huge 0
+total_mapped_file 1527808
+total_writeback 0
+total_swap 239775744
+total_pgpgin 598347
+total_pgpgout 139651
+total_pgfault 702656
+total_pgmajfault 4501
+total_inactive_anon 531689472
+total_active_anon 1343930368
+total_inactive_file 217088
+total_active_file 2981888
+total_unevictable 0
+--------------------BLKIO-----------------------
+11:0 Read 0
+11:0 Write 0
+11:0 Sync 0
+11:0 Async 0
+11:0 Total 0
+253:0 Read 44924928
+253:0 Write 310886400
+253:0 Sync 0
+253:0 Async 355811328
+253:0 Total 355811328
+Total 355811328
+--------------------CPUAC-----------------------
+user 687
+system 1149
+ 
+Tue May 16 10:45:24 IST 2017
+--------------------MEMCG-----------------------
+MEM ONLY  : 1791 MB
+MEM+SWAP  : 2020 MB
+cache 3244032
+rss 1875607552
+rss_huge 0
+mapped_file 1863680
+writeback 0
+swap 239788032
+pgpgin 615507
+pgpgout 156803
+pgfault 739046
+pgmajfault 19992
+inactive_anon 529780736
+active_anon 1345826816
+inactive_file 217088
+active_file 3026944
+unevictable 0
+hierarchical_memory_limit 1879048192
+hierarchical_memsw_limit 5368709120
+total_cache 3244032
+total_rss 1875607552
+total_rss_huge 0
+total_mapped_file 1863680
+total_writeback 0
+total_swap 239788032
+total_pgpgin 615507
+total_pgpgout 156803
+total_pgfault 739046
+total_pgmajfault 19992
+total_inactive_anon 529780736
+total_active_anon 1345826816
+total_inactive_file 217088
+total_active_file 3026944
+total_unevictable 0
+--------------------BLKIO-----------------------
+11:0 Read 0
+11:0 Write 0
+11:0 Sync 0
+11:0 Async 0
+11:0 Total 0
+253:0 Read 127078400
+253:0 Write 337522688
+253:0 Sync 0
+253:0 Async 464601088
+253:0 Total 464601088
+Total 464601088
+--------------------CPUAC-----------------------
+user 725
+system 1247
+ 

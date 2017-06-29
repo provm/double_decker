@@ -1,0 +1,80 @@
+java -cp /home/ubuntu/ycsb/redis-binding/conf:/home/ubuntu/ycsb/conf:/home/ubuntu/ycsb/lib/commons-pool-1.5.5.jar:/home/ubuntu/ycsb/lib/jackson-mapper-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/redis-binding-0.13.0-SNAPSHOT.jar:/home/ubuntu/ycsb/lib/jackson-core-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/htrace-core4-4.1.0-incubating.jar:/home/ubuntu/ycsb/lib/jedis-2.0.0.jar:/home/ubuntu/ycsb/lib/HdrHistogram-2.1.4.jar:/home/ubuntu/ycsb/lib/core-0.13.0-SNAPSHOT.jar com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.RedisClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p redis.host=10.0.3.168 -p redis.port=6379 -load
+Command line: -db com.yahoo.ycsb.db.RedisClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p redis.host=10.0.3.168 -p redis.port=6379 -loadYCSB Client 0.13.0-SNAPSHOT
+
+Loading workload...
+Starting test.
+DBWrapper: report latency for each error is false and specific error codes to track for latency are: []
+2017-05-16 10:51:04:305 0 sec: 0 operations; est completion in 0 seconds 
+2017-05-16 10:51:14:226 10 sec: 45848 operations; 4584.8 current ops/sec; est completion in 34 seconds [INSERT: Count=45848, Max=39871, Min=160, Avg=206.8, 90=204, 99=242, 99.9=5091, 99.99=24015] 
+2017-05-16 10:51:24:226 20 sec: 95776 operations; 4992.8 current ops/sec; est completion in 22 seconds [INSERT: Count=49928, Max=19551, Min=162, Avg=194.19, 90=198, 99=220, 99.9=1382, 99.99=7991] 
+2017-05-16 10:51:34:226 30 sec: 146289 operations; 5051.3 current ops/sec; est completion in 12 seconds [INSERT: Count=50513, Max=9063, Min=177, Avg=193.04, 90=196, 99=219, 99.9=1554, 99.99=2217] 
+2017-05-16 10:51:44:226 40 sec: 164997 operations; 1870.8 current ops/sec; est completion in 9 seconds [INSERT: Count=18708, Max=169215, Min=175, Avg=529.3, 90=243, 99=8815, 99.9=32191, 99.99=74303] 
+2017-05-16 10:51:54:226 50 sec: 174337 operations; 934 current ops/sec; est completion in 8 seconds [INSERT: Count=9340, Max=193151, Min=177, Avg=1060.17, 90=2487, 99=10263, 99.9=42559, 99.99=187775] 
+2017-05-16 10:52:04:226 60 sec: 186088 operations; 1175.1 current ops/sec; est completion in 5 seconds [INSERT: Count=11751, Max=470783, Min=178, Avg=843.83, 90=254, 99=10023, 99.9=48191, 99.99=288767] 
+2017-05-16 10:52:14:226 70 sec: 195993 operations; 990.5 current ops/sec; est completion in 2 seconds [INSERT: Count=9905, Max=165759, Min=174, Avg=1007.43, 90=1894, 99=10439, 99.9=39935, 99.99=147839] 
+2017-05-16 10:52:18:635 74 sec: 200000 operations; 908.82 current ops/sec; [CLEANUP: Count=1, Max=189, Min=189, Avg=189, 90=189, 99=189, 99.9=189, 99.99=189] [INSERT: Count=4007, Max=252415, Min=178, Avg=1096.31, 90=3247, 99=10583, 99.9=47039, 99.99=252415] 
+[OVERALL], RunTime(ms), 74415.0
+[OVERALL], Throughput(ops/sec), 2687.630182086945
+[TOTAL_GCS_PS_Scavenge], Count, 242.0
+[TOTAL_GC_TIME_PS_Scavenge], Time(ms), 322.0
+[TOTAL_GC_TIME_%_PS_Scavenge], Time(%), 0.4327084593159981
+[TOTAL_GCS_PS_MarkSweep], Count, 0.0
+[TOTAL_GC_TIME_PS_MarkSweep], Time(ms), 0.0
+[TOTAL_GC_TIME_%_PS_MarkSweep], Time(%), 0.0
+[TOTAL_GCs], Count, 242.0
+[TOTAL_GC_TIME], Time(ms), 322.0
+[TOTAL_GC_TIME_%], Time(%), 0.4327084593159981
+[CLEANUP], Operations, 1.0
+[CLEANUP], AverageLatency(us), 189.0
+[CLEANUP], MinLatency(us), 189.0
+[CLEANUP], MaxLatency(us), 189.0
+[CLEANUP], 95thPercentileLatency(us), 189.0
+[CLEANUP], 99thPercentileLatency(us), 189.0
+[INSERT], Operations, 200000.0
+[INSERT], AverageLatency(us), 365.098525
+[INSERT], MinLatency(us), 160.0
+[INSERT], MaxLatency(us), 470783.0
+[INSERT], 95thPercentileLatency(us), 226.0
+[INSERT], 99thPercentileLatency(us), 6871.0
+[INSERT], Return=OK, 200000
+java -cp /home/ubuntu/ycsb/redis-binding/conf:/home/ubuntu/ycsb/conf:/home/ubuntu/ycsb/lib/commons-pool-1.5.5.jar:/home/ubuntu/ycsb/lib/jackson-mapper-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/redis-binding-0.13.0-SNAPSHOT.jar:/home/ubuntu/ycsb/lib/jackson-core-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/htrace-core4-4.1.0-incubating.jar:/home/ubuntu/ycsb/lib/jedis-2.0.0.jar:/home/ubuntu/ycsb/lib/HdrHistogram-2.1.4.jar:/home/ubuntu/ycsb/lib/core-0.13.0-SNAPSHOT.jar com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.RedisClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p redis.host=10.0.3.168 -p redis.port=6379 -p operationcount=100000000 -p maxexecutiontime=60 -t
+Command line: -db com.yahoo.ycsb.db.RedisClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p redis.host=10.0.3.168 -p redis.port=6379 -p operationcount=100000000 -p maxexecutiontime=60 -tYCSB Client 0.13.0-SNAPSHOT
+
+Loading workload...
+Starting test.
+Maximum execution time specified as: 60 secs
+2017-05-16 10:52:49:125 0 sec: 0 operations; est completion in 0 seconds 
+DBWrapper: report latency for each error is false and specific error codes to track for latency are: []
+2017-05-16 10:52:59:091 10 sec: 2229 operations; 222.9 current ops/sec; est completion in 5 days 4 hours [READ: Count=2229, Max=172031, Min=97, Avg=4416.34, 90=15167, 99=27471, 99.9=71423, 99.99=172031] 
+2017-05-16 10:53:09:091 20 sec: 4828 operations; 259.9 current ops/sec; est completion in 4 days 19 hours [READ: Count=2599, Max=170751, Min=94, Avg=3836.74, 90=12551, 99=22479, 99.9=47359, 99.99=170751] 
+2017-05-16 10:53:19:091 30 sec: 7291 operations; 246.3 current ops/sec; est completion in 4 days 18 hours [READ: Count=2463, Max=141695, Min=91, Avg=4030.01, 90=12623, 99=23935, 99.9=76607, 99.99=141695] 
+2017-05-16 10:53:29:091 40 sec: 10258 operations; 296.7 current ops/sec; est completion in 4 days 12 hours [READ: Count=2967, Max=226175, Min=89, Avg=3360.63, 90=11055, 99=20495, 99.9=48223, 99.99=226175] 
+2017-05-16 10:53:39:091 50 sec: 13164 operations; 290.6 current ops/sec; est completion in 4 days 9 hours [READ: Count=2906, Max=181759, Min=86, Avg=3433.2, 90=11031, 99=19983, 99.9=47167, 99.99=181759] 
+2017-05-16 10:53:49:091 60 sec: 16096 operations; 293.2 current ops/sec; est completion in 4 days 7 hours [READ: Count=2932, Max=119935, Min=89, Avg=3407.45, 90=10831, 99=20399, 99.9=54431, 99.99=119935] 
+Maximum time elapsed. Requesting stop for the workload.
+Stop requested for workload. Now Joining!
+2017-05-16 10:53:49:134 60 sec: 16105 operations; 209.3 current ops/sec; est completion in 4 days 7 hours [READ: Count=9, Max=19071, Min=96, Avg=5321.44, 90=9087, 99=19071, 99.9=19071, 99.99=19071] [CLEANUP: Count=1, Max=205, Min=205, Avg=205, 90=205, 99=205, 99.9=205, 99.99=205] 
+[OVERALL], RunTime(ms), 60047.0
+[OVERALL], Throughput(ops/sec), 268.20657151897683
+[TOTAL_GCS_PS_Scavenge], Count, 10.0
+[TOTAL_GC_TIME_PS_Scavenge], Time(ms), 27.0
+[TOTAL_GC_TIME_%_PS_Scavenge], Time(%), 0.04496477759088714
+[TOTAL_GCS_PS_MarkSweep], Count, 0.0
+[TOTAL_GC_TIME_PS_MarkSweep], Time(ms), 0.0
+[TOTAL_GC_TIME_%_PS_MarkSweep], Time(%), 0.0
+[TOTAL_GCs], Count, 10.0
+[TOTAL_GC_TIME], Time(ms), 27.0
+[TOTAL_GC_TIME_%], Time(%), 0.04496477759088714
+[READ], Operations, 16105.0
+[READ], AverageLatency(us), 3708.6633964607263
+[READ], MinLatency(us), 86.0
+[READ], MaxLatency(us), 226175.0
+[READ], 95thPercentileLatency(us), 15975.0
+[READ], 99thPercentileLatency(us), 22639.0
+[READ], Return=OK, 16105
+[CLEANUP], Operations, 1.0
+[CLEANUP], AverageLatency(us), 205.0
+[CLEANUP], MinLatency(us), 205.0
+[CLEANUP], MaxLatency(us), 205.0
+[CLEANUP], 95thPercentileLatency(us), 205.0
+[CLEANUP], 99thPercentileLatency(us), 205.0

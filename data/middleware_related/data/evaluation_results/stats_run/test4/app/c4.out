@@ -1,0 +1,1 @@
+./oltpbenchmark: line 2:  1959 Terminated              java -Xmx8G -cp `./classpath.sh bin` -Dlog4j.configuration=log4j.properties com.oltpbenchmark.DBWorkload $@

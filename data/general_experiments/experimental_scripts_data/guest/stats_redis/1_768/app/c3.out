@@ -1,0 +1,48 @@
+ssh: connect to host 10.0.3.25 port 22: Connection refused
+java -cp /home/ubuntu/ycsb/redis-binding/conf:/home/ubuntu/ycsb/conf:/home/ubuntu/ycsb/lib/commons-pool-1.5.5.jar:/home/ubuntu/ycsb/lib/jackson-mapper-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/redis-binding-0.13.0-SNAPSHOT.jar:/home/ubuntu/ycsb/lib/jackson-core-asl-1.9.4.jar:/home/ubuntu/ycsb/lib/htrace-core4-4.1.0-incubating.jar:/home/ubuntu/ycsb/lib/jedis-2.0.0.jar:/home/ubuntu/ycsb/lib/HdrHistogram-2.1.4.jar:/home/ubuntu/ycsb/lib/core-0.13.0-SNAPSHOT.jar com.yahoo.ycsb.Client -db com.yahoo.ycsb.db.RedisClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p redis.host=10.0.3.168 -p redis.port=6379 -p operationcount=100000000 -p maxexecutiontime=60 -t
+Command line: -db com.yahoo.ycsb.db.RedisClient -s -P /home/ubuntu/ycsb/workloads/workload1 -p redis.host=10.0.3.168 -p redis.port=6379 -p operationcount=100000000 -p maxexecutiontime=60 -tYCSB Client 0.13.0-SNAPSHOT
+
+Loading workload...
+Starting test.
+Maximum execution time specified as: 60 secs
+DBWrapper: report latency for each error is false and specific error codes to track for latency are: []
+2017-05-16 11:41:37:394 0 sec: 0 operations; est completion in 0 seconds 
+2017-05-16 11:41:47:284 10 sec: 154169 operations; 15416.9 current ops/sec; est completion in 1 hours 47 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] [READ-FAILED: Count=154169, Max=23359, Min=44, Avg=60.26, 90=60, 99=73, 99.9=97, 99.99=5839] 
+2017-05-16 11:41:57:284 20 sec: 322671 operations; 16850.2 current ops/sec; est completion in 1 hours 42 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] [READ-FAILED: Count=168502, Max=28863, Min=47, Avg=57.2, 90=58, 99=69, 99.9=80, 99.99=93] 
+2017-05-16 11:42:07:284 30 sec: 492729 operations; 17005.8 current ops/sec; est completion in 1 hours 40 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] [READ-FAILED: Count=170058, Max=6983, Min=46, Avg=56.96, 90=58, 99=69, 99.9=80, 99.99=92] 
+2017-05-16 11:42:17:284 40 sec: 661536 operations; 16880.7 current ops/sec; est completion in 1 hours 40 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] [READ-FAILED: Count=168807, Max=3681, Min=47, Avg=57.3, 90=59, 99=70, 99.9=81, 99.99=92] 
+2017-05-16 11:42:27:284 50 sec: 831040 operations; 16950.4 current ops/sec; est completion in 1 hours 39 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] [READ-FAILED: Count=169504, Max=3847, Min=48, Avg=57.12, 90=58, 99=69, 99.9=80, 99.99=92] 
+2017-05-16 11:42:37:284 60 sec: 1001023 operations; 16998.3 current ops/sec; est completion in 1 hours 38 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] [READ-FAILED: Count=169983, Max=5295, Min=42, Avg=56.99, 90=58, 99=69, 99.9=81, 99.99=93] 
+Maximum time elapsed. Requesting stop for the workload.
+Stop requested for workload. Now Joining!
+2017-05-16 11:42:37:297 60 sec: 1001175 operations; 11692.31 current ops/sec; est completion in 1 hours 38 minutes [READ: Count=0, Max=0, Min=9223372036854775807, Avg=�, 90=0, 99=0, 99.9=0, 99.99=0] [CLEANUP: Count=1, Max=166, Min=166, Avg=166, 90=166, 99=166, 99.9=166, 99.99=166] [READ-FAILED: Count=152, Max=3523, Min=54, Avg=80.83, 90=58, 99=81, 99.9=3523, 99.99=3523] 
+[OVERALL], RunTime(ms), 60017.0
+[OVERALL], Throughput(ops/sec), 16681.523568322307
+[TOTAL_GCS_PS_Scavenge], Count, 9.0
+[TOTAL_GC_TIME_PS_Scavenge], Time(ms), 26.0
+[TOTAL_GC_TIME_%_PS_Scavenge], Time(%), 0.043321059033273907
+[TOTAL_GCS_PS_MarkSweep], Count, 0.0
+[TOTAL_GC_TIME_PS_MarkSweep], Time(ms), 0.0
+[TOTAL_GC_TIME_%_PS_MarkSweep], Time(%), 0.0
+[TOTAL_GCs], Count, 9.0
+[TOTAL_GC_TIME], Time(ms), 26.0
+[TOTAL_GC_TIME_%], Time(%), 0.043321059033273907
+[READ], Operations, 0.0
+[READ], AverageLatency(us), NaN
+[READ], MinLatency(us), 9.223372036854776E18
+[READ], MaxLatency(us), 0.0
+[READ], 95thPercentileLatency(us), 0.0
+[READ], 99thPercentileLatency(us), 0.0
+[READ], Return=ERROR, 1001175
+[CLEANUP], Operations, 1.0
+[CLEANUP], AverageLatency(us), 166.0
+[CLEANUP], MinLatency(us), 166.0
+[CLEANUP], MaxLatency(us), 166.0
+[CLEANUP], 95thPercentileLatency(us), 166.0
+[CLEANUP], 99thPercentileLatency(us), 166.0
+[READ-FAILED], Operations, 1001175.0
+[READ-FAILED], AverageLatency(us), 57.60006292606188
+[READ-FAILED], MinLatency(us), 42.0
+[READ-FAILED], MaxLatency(us), 28863.0
+[READ-FAILED], 95thPercentileLatency(us), 60.0
+[READ-FAILED], 99thPercentileLatency(us), 70.0

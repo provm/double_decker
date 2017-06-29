@@ -1,0 +1,38 @@
+18:14:22,645 (DBWorkload.java:259) INFO  - ======================================================================
+
+Benchmark:     YCSB {com.oltpbenchmark.benchmarks.ycsb.YCSBBenchmark}
+Configuration: /home/ubuntu/oltp/config/sample_ycsb_config.xml
+Type:          MYSQL
+Driver:        com.mysql.jdbc.Driver
+URL:           jdbc:mysql://10.0.3.43:3306/ycsb
+Isolation:     TRANSACTION_SERIALIZABLE
+Scale Factor:  1400.0
+
+18:14:22,647 (DBWorkload.java:260) INFO  - ======================================================================
+18:14:22,722 (DBWorkload.java:512) INFO  - Creating new YCSB database...
+18:14:23,554 (DBWorkload.java:514) INFO  - Finished!
+18:14:23,554 (DBWorkload.java:515) INFO  - ======================================================================
+18:14:23,555 (DBWorkload.java:538) INFO  - Loading data into YCSB database...
+18:27:56,217 (DBWorkload.java:540) INFO  - Finished!
+18:27:56,218 (DBWorkload.java:541) INFO  - ======================================================================
+18:27:56,218 (DBWorkload.java:581) INFO  - Skipping benchmark workload execution
+18:28:54,567 (DBWorkload.java:259) INFO  - ======================================================================
+
+Benchmark:     YCSB {com.oltpbenchmark.benchmarks.ycsb.YCSBBenchmark}
+Configuration: /home/ubuntu/oltp/config/sample_ycsb_config.xml
+Type:          MYSQL
+Driver:        com.mysql.jdbc.Driver
+URL:           jdbc:mysql://10.0.3.43:3306/ycsb
+Isolation:     TRANSACTION_SERIALIZABLE
+Scale Factor:  1400.0
+
+18:28:54,569 (DBWorkload.java:260) INFO  - ======================================================================
+18:28:54,582 (DBWorkload.java:790) INFO  - Creating 10 virtual terminals...
+18:28:56,507 (DBWorkload.java:795) INFO  - Launching the YCSB Benchmark with 1 Phase...
+18:28:56,550 (ThreadBench.java:325) INFO  - [0;1mPHASE START[0;0m :: [Workload=YCSB] [Serial=false] [Time=600] [Rate=20000] [Arrival=REGULAR] [Ratios=[50.0, 5.0, 15.0, 10.0, 10.0, 10.0]] [ActiveWorkers=10]
+18:28:56,551 (ThreadBench.java:472) INFO  - [0;1mMEASURE[0;0m :: Warmup complete, starting measurements.
+18:38:56,552 (ThreadBench.java:428) INFO  - [0;1mTERMINATE[0;0m :: Waiting for all terminals to finish ..
+18:38:56,917 (ThreadBench.java:233) INFO  - Starting WatchDogThread
+18:38:57,014 (DBWorkload.java:801) INFO  - ======================================================================
+18:38:57,014 (DBWorkload.java:802) INFO  - Rate limited reqs/s: Results(nanoSeconds=600000776344, measuredRequests=51946) = 86.57655464468543 requests/sec
+18:38:57,038 (DBWorkload.java:675) INFO  - Output Raw data into file: results/oltpbench.8.csv

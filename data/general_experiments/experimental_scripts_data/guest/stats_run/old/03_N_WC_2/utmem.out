@@ -1,0 +1,11 @@
+gets:1011804 sgets:626863 puts:828093 flushes:20048 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+gets:7914 sgets:0 puts:0 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+
+root@deba-desktop:/sys/kernel/mm/utmem# cat 0/5/stats && cat 0/6/stats 
+
+gets:2375789 sgets:1902246 puts:2190001 flushes:95960 evicts:0
+mem_to_ssd:0, ssd_to_mem:0
+gets:7914 sgets:0 puts:0 flushes:0 evicts:0
+mem_to_ssd:0, ssd_to_mem:0

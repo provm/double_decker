@@ -1,0 +1,52 @@
+Thu May 18 19:38:18 IST 2017
+--------------------MEMCG-----------------------
+MEM ONLY  : 453 MB
+MEM+SWAP  : 453 MB
+cache 23662592
+rss 452087808
+rss_huge 0
+mapped_file 8921088
+writeback 0
+swap 0
+pgpgin 186447
+pgpgout 70297
+pgfault 285143
+pgmajfault 195
+inactive_anon 45056
+active_anon 452063232
+inactive_file 11161600
+active_file 12427264
+unevictable 0
+hierarchical_memory_limit 6656360448
+hierarchical_memsw_limit 32212254720
+total_cache 23662592
+total_rss 452087808
+total_rss_huge 0
+total_mapped_file 8921088
+total_writeback 0
+total_swap 0
+total_pgpgin 186447
+total_pgpgout 70297
+total_pgfault 285143
+total_pgmajfault 195
+total_inactive_anon 45056
+total_active_anon 452063232
+total_inactive_file 11161600
+total_active_file 12427264
+total_unevictable 0
+--------------------BLKIO-----------------------
+11:0 Read 0
+11:0 Write 0
+11:0 Sync 0
+11:0 Async 0
+11:0 Total 0
+253:0 Read 23535616
+253:0 Write 241664
+253:0 Sync 0
+253:0 Async 23777280
+253:0 Total 23777280
+Total 23777280
+--------------------CPUAC-----------------------
+user 264
+system 258
+ 

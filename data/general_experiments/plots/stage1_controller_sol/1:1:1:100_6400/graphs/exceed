@@ -1,0 +1,31 @@
+set terminal pngcairo dashed size 400, 300 font ", 7"
+#set term png size 600, 500
+set output "../exceed.png"
+set title ''
+set xtics font ", 6"
+set ytics font ", 6"
+
+set xlabel 'Time (s)'
+set ylabel 'Memory Usage Exceed from Soft Limit (MB)'
+set yrange [-500:3200]
+set xzeroaxis
+plot '../plot.dat' using 1:(($2)/1048576) with lines t 'Mongo-Low Exceed' linecolor rgb "red", \
+	 '../plot.dat' using 1:(($3)/1048576) with lines t 'Mongo-High Exceed' linecolor rgb "blue", \
+	 '../plot.dat' using 1:(($4)/1048576) with lines t 'Redis-Low Exceed' linecolor rgb "green", \
+	 '../plot.dat' using 1:(($5)/1048576) with lines t 'Redis-High Exceed' linecolor rgb "yellow", \
+	 '../plot.dat' every ::::430 using 1:(($6)/1048576) with lines t 'Free Memory in System' linecolor rgb "orange"
+
+
+#set term png size 600, 500
+#set output "../exceed.png"
+#set title 'Plot between Time - Exceed'
+#set xlabel 'Time (s)'
+#set ylabel 'Memory Usage Exceed from Soft Limit (MB)'
+#set yrange [-500:3200]
+#set xzeroaxis
+#plot '../plot.dat' using 1:(($2)/1048576) with lines t 'Mongo-Low Exceed', \
+#	 '../plot.dat' using 1:(($3)/1048576) with lines t 'Mongo-High Exceed', \
+#	 '../plot.dat' using 1:(($4)/1048576) with lines t 'Redis-Low Exceed', \
+#	 '../plot.dat' using 1:(($5)/1048576) with lines t 'Redis-High Exceed', \
+#	 '../plot.dat' every ::::430 using 1:(($6)/1048576) with lines t 'Free Memory in System' 
+

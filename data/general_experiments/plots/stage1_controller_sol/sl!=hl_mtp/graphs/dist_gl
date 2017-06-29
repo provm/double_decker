@@ -1,0 +1,8 @@
+set term png size 500, 400
+set output "../gl_dist.png"
+set title 'Plot between SMR-GLR Reclamation'
+set xlabel 'Time (s)'
+set ylabel 'Total Memory Reclaimed (MB)'
+plot '../plot.dat' using 1:2 with points t 'Soft Memory Reclaimed', \
+	 '../plot.dat' using 1:3 with points t 'Global LRU Reclaimed'
+
