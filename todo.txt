@@ -1,0 +1,22 @@
+The following are a list of the future possible directions of memory management controller,
+
+1. The policy enforcement using existing memory controller framework is using static weight setting, we
+could expand this to incorporate a dynamic weight setting based on an higher level overall application
+objective.
+
+2. Explore other Linux Cgroups - analyze their behavior, bring forward their drawbacks and design
+solutions to fix their drawbacks.
+
+The following are a list of the future possible directions for DoubleDecker : decentralized memory
+management for double decker,
+
+1. To vigorously test existing implementation, and fix bugs. If any.
+
+2. To build a memory-cache allocation logic spread over the 3 levels - VM-memory, memory cache,
+and SSD cache.
+
+3. To come up with policies that are enforceable using our controller dynamically based on application
+usage patterns.
+
+4. To build a fully independent adaptive memory management framework that provisions containers
+across all layers satisfying individual application objectives and maximizing global allocation objectives.
